@@ -102,7 +102,7 @@ p2 %>% print()
 #save original overall att to use later
 or_att_emp = m2[[2]]$overall.att
 
-ggsave("../Output/202504/emprego_noeduc.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_noeduc.png", height = 5, width = 9)
 
 ######################################
 # Emprego privado- Por Educação
@@ -123,7 +123,7 @@ plot_grid(p1,p2, nrow = 1)
 #save original overall att for lths to use later
 or_att_emp_lths = m1[[2]]$overall.att
 
-ggsave("../Output/202504/emprego_privado_escolaridade.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_privado_escolaridade.png", height = 5, width = 9)
 
 ######################################
 # Emprego temporário e Meio Período
@@ -160,7 +160,7 @@ p1 = plot_es(m1, title = 'Less Than High School')
 p2 = plot_es(m2, title = "High School or More")
 plot_grid(p1,p2, nrow = 1)
 
-ggsave("../Output/202504/emprego_temporario_educ.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_temporario_educ.png", height = 5, width = 9)
 
 ######################################
 # Emprego Meio Período - Por educação
@@ -179,7 +179,7 @@ p2 = plot_es(m2, title = 'High School or More')
 plot_grid(p1,p2, nrow = 1)
 
 
-ggsave("../Output/202504/emprego_meio_periodo_educ.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_meio_periodo_educ.png", height = 5, width = 9)
 
 
 ######################################
@@ -215,7 +215,7 @@ plot_grid(p1,p2, nrow = 1)
 #save original overall att to use later
 or_att_wage_hs = m2[[2]]$overall.att
 
-ggsave("../Output/202504/wages_educ.png", height = 4.5, width = 8)
+ggsave("../Output/202504/wages_educ.png", height = 5, width = 9)
 
 
 ######################################
@@ -230,31 +230,31 @@ m2 = regressao_cs(variavel_dependente = "emprego_rural",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
+m3 = regressao_cs(variavel_dependente = "salario_publico",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "salario_rural",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
 
 p1 = plot_es(m1, title = 'Public Employment')
 p2 = plot_es(m2, title = "Rural Employment")
-plot_grid(p1,p2, nrow = 1)
+p3 = plot_es(m3, title = "Public Wages")
+p4 = plot_es(m4, title = "Rural Wages")
+plot_grid(p1,p2, p3, p4, nrow = 2)
 
-ggsave("../Output/202504/emprego_publico.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_salario_publico.png", height = 9, width = 9)
 
 ######################################
 # Salário Publico e Rural
 ######################################
 set.seed(456)
-m1 = regressao_cs(variavel_dependente = "salario_publico",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-m2 = regressao_cs(variavel_dependente = "salario_rural",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
 
 
-p1 = plot_es(m1, title = 'Public Wages')
-p2 = plot_es(m2, title = "Rural Wages")
-plot_grid(p1,p2, nrow = 1)
 
-ggsave("../Output/202504/salario_publico.png", height = 4.5, width = 8)
+
 
 
 
@@ -303,7 +303,7 @@ title = ggdraw() +
              fontface='bold')
 plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
 
-ggsave("../Output/202504/emprego_privado_escolaridade_universal.png", height = 4.5, width = 8)
+ggsave("../Output/202504/emprego_privado_escolaridade_universal.png", height = 5, width = 9)
 
 
 ######################################
@@ -326,7 +326,7 @@ title = ggdraw() + draw_label("Log Wages",
                               fontface='bold')
 plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
 
-ggsave("../Output/202504/wages_educ_universal.png", height = 4.5, width = 8)
+ggsave("../Output/202504/wages_educ_universal.png", height = 9, width = 9)
 
 
 
@@ -547,17 +547,17 @@ for(i in c(1:1000)){
 #plot for overall employment
 ggplot(fake_att, aes(att_emp))+geom_histogram()+
   geom_vline(aes(xintercept = or_att_emp))+ theme_minimal()+
-  labs(x = 'Fake ATTs', y = 'Count')+aux_theme()
+  labs(x = 'Fake ATTs', y = 'Count')+aux_theme
 
 #plot for lths employment
 ggplot(fake_att, aes(att_emp_lths))+geom_histogram()+
   geom_vline(aes(xintercept = or_att_emp_lths))+ theme_minimal()+
-  labs(x = 'Fake ATTs', y = 'Count')+aux_theme()
+  labs(x = 'Fake ATTs', y = 'Count')+aux_theme
 
 #plot for hs wages
 ggplot(fake_att, aes(wage_hs))+geom_histogram()+
   geom_vline(aes(xintercept = or_att_wage_hs))+ theme_minimal()+
-  labs(x = 'Fake ATTs', y = 'Count')+aux_theme()
+  labs(x = 'Fake ATTs', y = 'Count')+aux_theme
 
 
 
