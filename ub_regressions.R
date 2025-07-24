@@ -24,7 +24,6 @@ minimo_cidades = 10
 maximo_periodo = 20202
 minimo_habs = 50000
 
-df[, lpop2 := log(pop14)^2]
 #definir controles
 controles = as.formula(" ~ mean_income_m+ unem_rate_m + inf_rate_m + lpop +lpop2")
 sem_controles = as.formula("~ 1")
