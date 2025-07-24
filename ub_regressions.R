@@ -22,9 +22,8 @@ df = read_parquet("../data/ub_rais_merged.parquet")
 dropar_primeiros_munics = 0
 minimo_cidades = 10
 maximo_periodo = 20202
-minimo_habs = 50000
+# minimo_habs = 50000
 
-df[, lpop2 := log(pop14)^2]
 #definir controles
 controles = as.formula(" ~ mean_income_m+ unem_rate_m + inf_rate_m + lpop +lpop2")
 sem_controles = as.formula("~ 1")
@@ -37,12 +36,14 @@ if(dropar_primeiros_munics == 1){
   df = df[!(tem_uber == 1 & semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 }
 
+#Dropar minimo de habitantes
+# df = df[pop14 >= minimo_habs]
+
 #dropar grupos onde o numero de cidades tratadas no periodo é menor que o minimo
 df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
 df = df[conta_cidade_grupo >=minimo_cidades]
 
-#Dropar minimo de habitantes
-df = df[pop14 >= minimo_habs]
+
 
 source("../uber2/ub_funcoes_auxiliares.R")
 dia = "202504"
@@ -93,7 +94,7 @@ wages_emp = data.table(
 #Emprego privado
 ######################################
 set.seed(456)
-m2 = regressao_cs(variavel_dependente = "emprego_privado",
+m2 = regressao_cs(variavel_dependente = "emprego_lths",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
