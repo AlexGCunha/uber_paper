@@ -111,7 +111,7 @@ rm(pibmun)
 censo = read_parquet("../data/munic_data_10.parquet") %>% data.table()
 #corrigir nome de colunas
 setnames(censo, old = "munic", new = "id_municipio")
-censo[, pop_m := NULL]
+# censo[, pop_m := NULL]
 censo[, id_municipio := as.integer(id_municipio)]
 
 #no censo, o id de municipio tem 6 digitos (n tem o 7 digito verificador), 
@@ -135,11 +135,12 @@ q1 = quantile(rais$pop14, 0.01)
 q99 = quantile(rais$pop14, 0.99)
 print(q1)
 print(q99)
-rais = rais[pop14 > q1 & pop14 < q99]
+# rais = rais[pop14 > q1 & pop14 < q99]
 rm(q1, q99)
 
 #create log pop
 rais[, lpop := log(pop14)]
+rais[, lpop2 := log(pop_m)]
 
 
 ###################
@@ -147,43 +148,43 @@ rais[, lpop := log(pop14)]
 #DEMORA PARA RODAR E EU NÃO ACHEI NENHUM EFEITO, ENTÃO VOU DEIXAR COMENTADO
 ###################
 
-# sis = read_parquet("../data/SIM.parquet") %>% data.table()
-# #Acidantes de transporte terrestre estao entre os CID V01 e V99
-# 
-# #definir letra e codigos do cid
-# sis[, letra := substr(causa_basica, 1,1)]
-# sis[, codigo := as.integer(substr(causa_basica, 2,3))]
-# sis[, id_municipio := as.integer(substr(id_municipio_ocorrencia, 1, 6))]
-# #definir se foi acidente veicular
-# sis[, acidente_veicular := fcase(letra == "V" & codigo %in% seq(1,89,1), 1,
-#                                  default = 0)]
-# 
-# #Definir semestre do obito
-# sis[, `:=`(mes_obito = as.integer(format(data_obito, '%m')),
-#            ano_obito = as.integer(format(data_obito, '%Y')))]
-# sis = sis[!is.na(mes_obito)]
-# sis[, semestre_obito := fcase(mes_obito <= 6, 1,
-#                              default = 2)]
-# sis[, anosem := as.integer(paste0(ano_obito, semestre_obito))]
-# 
-# #contar mortes por homicídio e acidente veicular, por municipio e semestre
-# homicidio = sis[circunstancia_obito == "3", .(homicidios = .N),
-#                by = .(id_municipio, anosem)]
-# 
-# acidente = sis[acidente_veicular == 1, .(mortes_acidente_carro = .N),
-#           by = .(id_municipio, anosem)]
-# 
-# #merge
-# rais = merge(rais, homicidio, by = c("id_municipio", "anosem"), all.x = TRUE)
-# rais = merge(rais, acidente, by = c("id_municipio", "anosem"), all.x = TRUE)
-# 
-# rais[, homicidios := fifelse(is.na(homicidios), 0, homicidios)]
-# 
-# rais[, mortes_acidente_carro := fifelse(is.na(mortes_acidente_carro), 0,
-#                                       mortes_acidente_carro)]
-# rais[, homicidios_pc := homicidios*100000/(pop14)]
-# rais[, mortes_acidente_carro_pc := mortes_acidente_carro*100000/(pop14)]
-# rm(sis, homicidio, acidente)
+sis = read_parquet("../data/SIM.parquet") %>% data.table()
+#Acidantes de transporte terrestre estao entre os CID V01 e V99
+
+#definir letra e codigos do cid
+sis[, letra := substr(causa_basica, 1,1)]
+sis[, codigo := as.integer(substr(causa_basica, 2,3))]
+sis[, id_municipio := as.integer(substr(id_municipio_ocorrencia, 1, 6))]
+#definir se foi acidente veicular
+sis[, acidente_veicular := fcase(letra == "V" & codigo %in% seq(1,89,1), 1,
+                                 default = 0)]
+
+#Definir semestre do obito
+sis[, `:=`(mes_obito = as.integer(format(data_obito, '%m')),
+           ano_obito = as.integer(format(data_obito, '%Y')))]
+sis = sis[!is.na(mes_obito)]
+sis[, semestre_obito := fcase(mes_obito <= 6, 1,
+                             default = 2)]
+sis[, anosem := as.integer(paste0(ano_obito, semestre_obito))]
+
+#contar mortes por homicídio e acidente veicular, por municipio e semestre
+homicidio = sis[circunstancia_obito == "3", .(homicidios = .N),
+               by = .(id_municipio, anosem)]
+
+acidente = sis[acidente_veicular == 1, .(mortes_acidente_carro = .N),
+          by = .(id_municipio, anosem)]
+
+#merge
+rais = merge(rais, homicidio, by = c("id_municipio", "anosem"), all.x = TRUE)
+rais = merge(rais, acidente, by = c("id_municipio", "anosem"), all.x = TRUE)
+
+rais[, homicidios := fifelse(is.na(homicidios), 0, homicidios)]
+
+rais[, mortes_acidente_carro := fifelse(is.na(mortes_acidente_carro), 0,
+                                      mortes_acidente_carro)]
+rais[, homicidios_pc := homicidios*100000/(pop14)]
+rais[, mortes_acidente_carro_pc := mortes_acidente_carro*100000/(pop14)]
+rm(sis, homicidio, acidente)
 
 ###################
 #SIA-SUS - Produção Ambulatorial

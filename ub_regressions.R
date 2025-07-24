@@ -24,8 +24,9 @@ minimo_cidades = 10
 maximo_periodo = 20202
 minimo_habs = 50000
 
+df[, lpop2 := log(pop14)^2]
 #definir controles
-controles = as.formula(" ~ mean_income_m+ unem_rate_m + inf_rate_m + lths_rate_m  + hs_rate_m ")
+controles = as.formula(" ~ mean_income_m+ unem_rate_m + inf_rate_m + lpop +lpop2")
 sem_controles = as.formula("~ 1")
 
 ######################################
@@ -164,19 +165,19 @@ ggsave("../Output/202504/emprego_temporario_educ.png", height = 5, width = 9)
 
 ######################################
 # Emprego Meio Período - Por educação
-######################################
-set.seed(456)
-m1 = regressao_cs(variavel_dependente = "emprego_meio_periodo_lths",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-m2 = regressao_cs(variavel_dependente = "emprego_meio_periodo_hs",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-
-p1 = plot_es(m1, title = "Less Than High School")
-p2 = plot_es(m2, title = 'High School or More')
-plot_grid(p1,p2, nrow = 1)
+  ######################################
+  set.seed(456)
+  m1 = regressao_cs(variavel_dependente = "emprego_meio_periodo_lths",
+                    dep_em_log= 1, controles_use = controles, 
+                    control_group = "notyettreated")
+  m2 = regressao_cs(variavel_dependente = "emprego_meio_periodo_hs",
+                    dep_em_log= 1, controles_use = controles, 
+                    control_group = "notyettreated")
+  
+  
+  p1 = plot_es(m1, title = "Less Than High School")
+  p2 = plot_es(m2, title = 'High School or More')
+  plot_grid(p1,p2, nrow = 1)
 
 
 ggsave("../Output/202504/emprego_meio_periodo_educ.png", height = 5, width = 9)

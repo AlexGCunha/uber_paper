@@ -1,11 +1,14 @@
 #regressao
 regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
                         dep_em_relativo_emp =0,
-                        dep_em_relativo_pea = 0, controles_use = sem_controles, 
+                        dep_em_relativo_pea = 0, 
+                        dep_relativo_2014 = 0,
+                        controles_use = sem_controles, 
                         control_group = "nevertreated",
                         base_period = "varying",
-                        control18 =0 ){
-  df_use = copy(df)
+                        est_method = 'dr', 
+                        control18 =0){
+  df_use = copy(data)
   
   if(dep_em_log ==1){
     variaveis = c(variavel_dependente)
@@ -25,6 +28,15 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
            .SDcols = variaveis]
   }
   
+  if(dep_relativo_2014 == 1){
+    variaveis = c(variavel_dependente)
+    df_use = df_use %>% 
+      group_by(id_municipio) %>% 
+      mutate(across(variaveis, ~./.[anosem==20142])) %>% 
+      ungroup() %>% 
+      data.table()
+  }
+  
   if(control18 == 1){
     df_use = df_use[tem_uber == 1 & anosem <= 20181]
   }
@@ -39,10 +51,11 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
               clustervars = c('id_municipio'),
               control_group = control_group,
               base_period = base_period,
+              est_method = est_method,
               data = df_use, 
               pl = TRUE)
   
-  m1_agg = aggte(m1, type = "dynamic", min_e = -6,max_e = 5)
+  m1_agg = aggte(m1, type = "dynamic", min_e = -6,max_e = 5, na.rm = TRUE)
   return(list(m1, m1_agg))
   
 }
