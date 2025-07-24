@@ -12,11 +12,18 @@ library(readxl)
 ###################
 
 rais = read_parquet("../data/ub_painel_emprego_basico.parquet") %>% data.table()
+
+# #filtrar municipios que, em alguma categoria de emprego, não possuiam emprego em
+# #algum momentos
+# cols_emprego = rais %>% select(starts_with("emprego")) %>% colnames()
+# # Passo 1: Filtrar as linhas onde qualquer coluna de emprego tem valor 0
+# dt_zero <- rais[, .SD[any(.SD == 0)], by = id_municipio, .SDcols = cols_emprego]
+# # Passo 2: Extrair os ids dos municípios que atendem à condição
+# municipios_drop <- unique(dt_zero$id_municipio)
+# rais = rais[!(id_municipio %in% municipios_drop)]
+# rm(municipios_drop, dt_zero)
+
 rais[, id_municipio := as.integer(id_municipio)]
-
-#filtrar períodos até 2019, ano que eu sei que todas as cidades que tem uber
-rais = rais[ano <= 2019]
-
 
 ###################
 #DATAS UBER
@@ -41,15 +48,9 @@ datas[, count := NULL]
 #Combinar dados
 rais = merge(rais, datas, by = "id_municipio", all.x = TRUE)
 
-#definir como tem uber as cidades em que o uber entrou até 20192, 
-#o resto considerar como não tem uber
-rais[, tem_uber :=fifelse(is.na(semestre_entrada)
-                          | semestre_entrada > 20192, 0, 1)]
-
+#Correções
+rais[, tem_uber :=fifelse(is.na(tem_uber), 0, 1)]
 setnames(rais, old = "problem", new = "problema_datas")
-
-#dropar municipios com problemas de datas
-rais = rais[is.na(problema_datas) | problema_datas == 0]
 
 #Criar indicador de semestre para ano e para quando uber chegou em uma cidade
 # -- isso é, um indicador para usar no pacote did de Callaway & Santanna
@@ -67,6 +68,12 @@ rais = merge(rais, datas_did, by = "semestre_entrada", all.x = TRUE)
 
 rm(datas, datas_did, anosem)
 
+#manter somente municipios sem problemas na data de entrada do uber
+#-- ou que eu sei que não possuem uber
+# rais[, tem_uber := fifelse(is.na(problema_datas), 0, tem_uber)]
+rais = rais[problema_datas == 0 | tem_uber == 0]
+rais[, problema_datas := NULL]
+# rais = rais[anosem <= 20181]
 
 #Inputar data de entrada did 0 para os municipios que nao tem uber (para o pacote)
 rais[, semestre_entrada_did := fifelse(tem_uber == 0, 0, semestre_entrada_did)]
@@ -226,10 +233,7 @@ rm(sis, homicidio, acidente)
 
 
 
-#Salvar
+#Salvar x
 write_parquet(rais, "../data/ub_rais_merged.parquet")
 rm(list = ls())
 gc()
-
-
-###teste
