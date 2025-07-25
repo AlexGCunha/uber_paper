@@ -19,13 +19,12 @@ df = read_parquet("../data/ub_rais_merged.parquet")
 
 #parametros:
 #dropar primeiros municipios
-dropar_primeiros_munics = 0
+dropar_primeiros_munics = 1
 minimo_cidades = 10
-maximo_periodo = 20202
 minimo_habs = 50000
 
 #definir controles
-controles = as.formula(" ~ mean_income_m+ unem_rate_m + inf_rate_m + lpop +lpop2")
+controles = as.formula(" ~ lincome_m + lincome_r + unem_rate_m + unem_rate_r + inf_rate_m  +inf_rate_r +lpop + lmean_pop_r +ltot_pop_r")
 sem_controles = as.formula("~ 1")
 
 ######################################
@@ -33,7 +32,7 @@ sem_controles = as.formula("~ 1")
 ######################################
 #Dropar primeiros municípios e ultimos municipios
 if(dropar_primeiros_munics == 1){
-  df = df[!(tem_uber == 1 & semestre_entrada %in% c(20141, 20142, 20151, 20152))]
+  df = df[!(semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 }
 
 #dropar grupos onde o numero de cidades tratadas no periodo é menor que o minimo
@@ -41,7 +40,7 @@ df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada
 df = df[conta_cidade_grupo >=minimo_cidades]
 
 #Dropar minimo de habitantes
-df = df[pop14 >= minimo_habs]
+# df = df[pop14 >= minimo_habs]
 
 source("../uber2/ub_funcoes_auxiliares.R")
 dia = "202504"

@@ -14,18 +14,39 @@ df_est = df[anosem == 20142]
 
 
 #Estimar propensity score
-ps_model = glm(tratado ~  log(mean_income_m)
-               + unem_rate_m 
-               + inf_rate_m #+ lths_rate_m  + hs_rate_m
-               + log(pibpc14) #+ I(log(pibpc14)^2)
-               + log(employed_m) 
-               # + pibpc14 + I(pibpc14^2)
-               # + log(pea_m) #+ I(log(pea_m^2))
-               + age_m 
-               + log(pop14) 
-               + factor(region)
+ps_model = glm(tratado ~  lincome_m
+               +lincome_r
+               # + unem_rate_m
+               + unem_rate_r
+               # + inf_rate_m 
+               + inf_rate_r
+               + lpibpc_r
+               + lemployed_r
+               # + lpop
+               # + lmean_pop_r
+               + ltot_pop_r
+               + age_m
+               + age_r
+               + factor(uf)
                , data = df_est,
-               family = 'binomial')
+              family = 'binomial')
+
+
+# ps_model = lm(tratado ~  lincome_m
+#               +lincome_r
+#               + unem_rate_m
+#               + unem_rate_r
+#               + inf_rate_m 
+#               + inf_rate_r
+#               + log(pibpc14) 
+#               + log(employed_m) 
+#               + lpop
+#               + lmean_pop_r
+#               + ltot_pop_r
+#               + age_m
+#               + factor(uf)
+#               , data = df_est)
+
 
 print(summary(ps_model))
 df_est[, prob := predict(ps_model, type = 'response')]
@@ -62,23 +83,11 @@ df[, peso := fifelse(
 
 
 
-pesos = df$peso
-
-
-
 m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did)
           | id_municipio + anosem_did ,
           data = df,
-          weights = pesos,
-          cluster = 'id_municipio')
+          weights = ~peso,
+          cluster = 'rgi')
 iplot(m)
 
-
-# m = fepois(emprego_lths ~ sunab(semestre_entrada_did, anosem_did)
-#           | id_municipio + anosem_did ,
-#           data = df,
-#           weights = pesos,
-#           cluster = 'id_municipio')
-# m$coeftable[,1] = exp(m$coeftable[,1])-1
-# iplot(m)+ylim(-0.15,0.07)
 
