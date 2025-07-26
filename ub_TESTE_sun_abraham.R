@@ -11,6 +11,7 @@ df[, region := substr(id_municipio, 1,1)]
 df[, tratado := fifelse(is.na(semestre_entrada), 0, 1)]
 df[, pop2 := pop14^2]
 df_est = df[anosem == 20142]
+# df = df[!(tem_uber == 1 & semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 
 
 #Estimar propensity score
@@ -22,7 +23,7 @@ ps_model = glm(tratado ~  log(mean_income_m)
                # + pibpc14 + I(pibpc14^2)
                # + log(pea_m) #+ I(log(pea_m^2))
                + age_m 
-               + log(pop14) 
+               + log(pop_m) 
                + factor(region)
                , data = df_est,
                family = 'binomial')
@@ -64,8 +65,9 @@ df[, peso := fifelse(
 
 pesos = df$peso
 
-
-
+########################
+############sunab
+########################
 m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) +lpop_t
           | id_municipio + anosem_did ,
           data = df,
@@ -74,11 +76,24 @@ m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) +lpop_t
 iplot(m)
 
 
-# m = fepois(emprego_lths ~ sunab(semestre_entrada_did, anosem_did)
-#           | id_municipio + anosem_did ,
-#           data = df,
-#           weights = pesos,
-#           cluster = 'id_municipio')
-# m$coeftable[,1] = exp(m$coeftable[,1])-1
-# iplot(m)+ylim(-0.15,0.07)
+######################
+#Ajustes para o pacote do chaisemartin
+######################
+chaise = copy(df)
+chaise[, tratado := fifelse(
+  tem_uber== 1 & anosem_did >= semestre_entrada_did, 1, 0)]
+chaise[, `:=`(lemprego  = log(emprego_privado),
+              lemprego_lths = log(emprego_lths),
+              lemprego_hs = log(emprego_hs))] 
+chaise = chaise[emprego_lths > 0]
+
+mc = did_multiplegt_dyn(df = chaise,
+                        outcome = 'lemprego_lths',
+                        group = 'id_municipio', 
+                        time = 'anosem_did',
+                        treatment = 'tratado',
+                        effects = 6, placebo = 6, cluster = 'id_municipio',
+                        controls = c('lpop_t'),
+                        weight =  'peso')
+
 

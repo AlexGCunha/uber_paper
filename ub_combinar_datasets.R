@@ -73,7 +73,7 @@ rm(datas, datas_did, anosem)
 # rais[, tem_uber := fifelse(is.na(problema_datas), 0, tem_uber)]
 rais = rais[problema_datas == 0 | tem_uber == 0]
 rais[, problema_datas := NULL]
-# rais = rais[anosem <= 20181]
+
 
 #Inputar data de entrada did 0 para os municipios que nao tem uber (para o pacote)
 rais[, semestre_entrada_did := fifelse(tem_uber == 0, 0, semestre_entrada_did)]
