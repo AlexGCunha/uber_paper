@@ -25,7 +25,7 @@ ps_model = glm(tratado ~  log(mean_income_m)
                # + log(pea_m) #+ I(log(pea_m^2))
                + age_m 
                + log(pop_m) 
-               + factor(region)
+               + factor(uf)
                , data = df_est,
                family = 'binomial')
 
