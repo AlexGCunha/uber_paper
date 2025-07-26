@@ -10,8 +10,9 @@ df[, uf := substr(id_municipio, 1, 2)]
 df[, region := substr(id_municipio, 1,1)]
 df[, tratado := fifelse(is.na(semestre_entrada), 0, 1)]
 df[, pop2 := pop14^2]
+df = df[!(tem_uber == 1 & semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 df_est = df[anosem == 20142]
-# df = df[!(tem_uber == 1 & semestre_entrada %in% c(20141, 20142, 20151, 20152))]
+
 
 
 #Estimar propensity score
