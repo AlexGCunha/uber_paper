@@ -61,16 +61,6 @@ rais[, semestre_entrada := fifelse(
 rais[, semestre_entrada := min(semestre_entrada), by = 'rgi']
 
 
-#OU definir a data de entrada do uber na cidade como a minima da microrreriao, so pras cidades sem data
-# rais[, semestre_entrada_aux := fifelse(
-#   is.na(semestre_entrada), 99999, semestre_entrada)]
-# 
-# rais[, semestre_entrada_aux := min(semestre_entrada_aux), by = 'rgi']
-# rais[, semestre_entrada := fifelse(is.na(semestre_entrada), semestre_entrada_aux,
-#                                  semestre_entrada)]
-# rais[, semestre_entrada_aux := NULL]
-
-
 #definir tem uber se tem uber na microrregiao
 rais[, tem_uber := fifelse(is.na(tem_uber), 0, tem_uber)]
 rais[, tem_uber := max(tem_uber), by = 'rgi']
@@ -111,16 +101,26 @@ rais[, semestre_entrada_did := fifelse(tem_uber == 0, 0, semestre_entrada_did)]
 #População e PIB municipal
 ###################
 #Populacao
-populacao = read_excel("../data/pop_mun.xlsx", sheet = "Tabela") %>% data.table()
-colunas_manter = c("id_municipio", "2014")
-populacao = populacao[, ..colunas_manter]
-populacao[, id_municipio := as.integer(id_municipio)]
-rm(colunas_manter)
-setnames(populacao, old = "2014", new = "pop14")
+populacao = read_excel("../data/time_series_pop.xlsx") %>% data.table()
+populacao[, `:=`(`2011` = as.numeric(`2011`),
+                 id_municipio = as.numeric(id_municipio))]
+populacao = populacao[, .(id_municipio, `2011`, `2012`, `2013`, `2014`, `2015`, 
+                          `2016`, `2017`,`2018`, `2019`, `2020`)]
+populacao = populacao %>% 
+  pivot_longer(cols = 2:(ncol(populacao)), names_to = 'ano', values_to = 'pop') %>% 
+  data.table()
+
+populacao[, ano := as.integer(ano)]
 
 #combinar
-rais = merge(rais, populacao, by = "id_municipio", all.x = TRUE)
+rais = merge(rais, populacao, by = c("id_municipio", "ano"), all.x = TRUE)
 rm(populacao)
+
+#dropar observacoes sem populacao
+rais = rais[!is.na(pop)]
+
+#criar variavel de populacao em 2014
+rais[, pop14 := pop[anosem == 20142], by = .(id_municipio)]
 
 #PIB Municipal
 pibmun = read_parquet("../data/pib_mun.parquet") %>% 
@@ -168,25 +168,24 @@ rais = rais[pop14 > q1 & pop14 < q99]
 rm(q1, q99)
 
 #create log pop
-rais[, lpop := log(pop_m)]
-rais[, lpop2 := log(pop_m)^2]
-
+rais[, lpop_m := log(pop_m)]
+rais[, lpop_t := log(pop)]
 
 #Criar variáveis ao nível da microrregiao
 rais[, `:=`(mean_income_r = weighted.mean(mean_income_m, employed_m),
             unem_rate_r = weighted.mean(unem_rate_m, pea_m),
             inf_rate_r = weighted.mean(inf_rate_m, employed_m),
-            employed_r = mean(employed_m),
-            mean_pop_r = mean(pop_m),
-            tot_pop_r = sum(pop_m),
+            employed_r = sum(employed_m),
+            pop_r = sum(pop_m),
+            pop_r_t = sum(pop),
             age_r = mean(age_m),
-            pibpc_r = weighted.mean(pibpc14, pop_m)), by = .(rgi)]
+            pibpc_r = weighted.mean(pibpc14, pop_m)), by = .(rgi, anosem)]
 
 rais[, `:=`(lincome_m = log(mean_income_m),
             lincome_r = log(mean_income_r),
             lemployed_r = log(employed_r),
-            lmean_pop_r = log(mean_pop_r),
-            ltot_pop_r = log(tot_pop_r),
+            lpop_r = log(pop_r),
+            lpop_r_t = log(pop_r_t),
             lpibpc_r = log(pibpc_r))]
 
 

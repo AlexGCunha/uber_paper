@@ -6,26 +6,30 @@
 ######################################
 library(fixest)
 df = read_parquet("../data/ub_rais_merged.parquet")
+df = df[anosem <= 20192]
+df = df[!(semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 df[, uf := substr(id_municipio, 1, 2)]
 df[, region := substr(id_municipio, 1,1)]
 df[, tratado := fifelse(is.na(semestre_entrada), 0, 1)]
 df[, pop2 := pop14^2]
 df_est = df[anosem == 20142]
+#dataset ao nível da microrregiao
+df[, manter := fifelse(id_municipio == min(id_municipio),1, 0),
+            by = 'rgi']
+df_mmc = df[manter == 1 & anosem == 20142]
 
 
 #Estimar propensity score
-ps_model = glm(tratado ~  lincome_m
-               +lincome_r
+ps_model = glm(tratado ~  lincome_r
                # + unem_rate_m
                + unem_rate_r
-               # + inf_rate_m 
+               # + inf_rate_m
                + inf_rate_r
                + lpibpc_r
                + lemployed_r
                # + lpop
                # + lmean_pop_r
-               + ltot_pop_r
-               + age_m
+               + lpop_r
                + age_r
                + factor(uf)
                , data = df_est,
@@ -36,10 +40,10 @@ ps_model = glm(tratado ~  lincome_m
 #               +lincome_r
 #               + unem_rate_m
 #               + unem_rate_r
-#               + inf_rate_m 
+#               + inf_rate_m
 #               + inf_rate_r
-#               + log(pibpc14) 
-#               + log(employed_m) 
+#               + log(pibpc14)
+#               + log(employed_m)
 #               + lpop
 #               + lmean_pop_r
 #               + ltot_pop_r
@@ -72,7 +76,7 @@ df[, anosem_did_relativo := fifelse(
 df = df[anosem_did_relativo >= -7 & anosem_did_relativo <= 6]
 
 #plot distribution of propensity scores among treated and control municipalities
-# ggplot(df[anosem == 20142], 
+# ggplot(df[anosem == 20142],
 #        aes(prob, colour = tratado, group = tratado))+geom_density()
 
 #criar pesos
@@ -82,12 +86,12 @@ df[, peso := fifelse(
 )]
 
 
-
-m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did)
-          | id_municipio + anosem_did ,
+m = feols(log(emprego_privado) ~ sunab(semestre_entrada_did, anosem_did) + lpop_r_t
+          | id_municipio + anosem_did + uf ,
           data = df,
-          weights = ~peso,
+          # weights = ~peso,
           cluster = 'rgi')
+
 iplot(m)
 
 
