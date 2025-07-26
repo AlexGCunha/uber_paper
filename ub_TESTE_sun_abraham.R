@@ -16,15 +16,16 @@ df_est = df[anosem == 20142]
 
 
 #Estimar propensity score
-ps_model = glm(tratado ~  log(mean_income_m)
+ps_model = glm(tratado ~  lpop_m
+                 + log(mean_income_m)
                + unem_rate_m 
-               + inf_rate_m #+ lths_rate_m  + hs_rate_m
+               + inf_rate_m 
+               + lths_rate_m  + hs_rate_m
                + log(pibpc14) #+ I(log(pibpc14)^2)
-               + log(employed_m) 
+               # + log(employed_m) 
                # + pibpc14 + I(pibpc14^2)
                # + log(pea_m) #+ I(log(pea_m^2))
-               + age_m 
-               + log(pop_m) 
+               + age_m  
                + factor(uf)
                , data = df_est,
                family = 'binomial')
@@ -69,7 +70,8 @@ pesos = df$peso
 ########################
 ############sunab
 ########################
-m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) +lpop_t
+m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) 
+          +lpop_t
           | id_municipio + anosem_did ,
           data = df,
           weights = pesos,
@@ -93,8 +95,9 @@ mc = did_multiplegt_dyn(df = chaise,
                         group = 'id_municipio', 
                         time = 'anosem_did',
                         treatment = 'tratado',
-                        effects = 6, placebo = 6, cluster = 'id_municipio',
+                        effects = 5, placebo = 5, cluster = 'id_municipio',
                         controls = c('lpop_t'),
-                        weight =  'peso')
+                        weight =  'peso'
+                        )
 
 
