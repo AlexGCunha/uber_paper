@@ -82,16 +82,23 @@ rais[, semestre_entrada_did := fifelse(tem_uber == 0, 0, semestre_entrada_did)]
 #População e PIB municipal
 ###################
 #Populacao
-populacao = read_excel("../data/pop_mun.xlsx", sheet = "Tabela") %>% data.table()
-colunas_manter = c("id_municipio", "2014")
-populacao = populacao[, ..colunas_manter]
-populacao[, id_municipio := as.integer(id_municipio)]
-rm(colunas_manter)
-setnames(populacao, old = "2014", new = "pop14")
+populacao = read_excel("../data/time_series_pop.xlsx") %>% data.table()
+populacao[, `:=`(`2011` = as.numeric(`2011`),
+                 id_municipio = as.numeric(id_municipio))]
+populacao = populacao[, .(id_municipio, `2011`, `2012`, `2013`, `2014`, `2015`, 
+                          `2016`, `2017`,`2018`, `2019`, `2020`)]
+populacao = populacao %>% 
+  pivot_longer(cols = 2:(ncol(populacao)), names_to = 'ano', values_to = 'pop') %>% 
+  data.table()
+
+populacao[, ano := as.integer(ano)]
 
 #combinar
-rais = merge(rais, populacao, by = "id_municipio", all.x = TRUE)
+rais = merge(rais, populacao, by = c("id_municipio", "ano"), all.x = TRUE)
 rm(populacao)
+
+#criar variavel de populacao em 2014
+rais[, pop14 := pop[anosem == 20142], by = .(id_municipio)]
 
 #PIB Municipal
 pibmun = read_parquet("../data/pib_mun.parquet") %>% 
@@ -139,8 +146,8 @@ rais = rais[pop14 > q1 & pop14 < q99]
 rm(q1, q99)
 
 #create log pop
-rais[, lpop := log(pop14)]
-rais[, lpop2 := log(pop_m)]
+rais[, lpop_m := log(pop_m)]
+rais[, lpop_t := log(pop)]
 rais[, lmean_income := log(mean_income_m)]
 
 
