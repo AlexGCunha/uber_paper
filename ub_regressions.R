@@ -25,7 +25,7 @@ maximo_periodo = 20202
 # minimo_habs = 50000
 
 #definir controles
-controles = as.formula(" ~ lmean_income+ unem_rate_m + inf_rate_m + lpop +lpop2")
+controles = as.formula(" ~ lmean_income+ unem_rate_m + inf_rate_m + lpop_t")
 sem_controles = as.formula("~ 1")
 
 ######################################

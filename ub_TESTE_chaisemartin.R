@@ -9,7 +9,7 @@ library(fixest)
 library(modelsummary)
 library(HonestDiD)
 library(BMisc)
-
+library(DIDmultiplegtDYN)
 
 
 #abrir dataset
@@ -23,7 +23,7 @@ maximo_periodo = 20202
 # minimo_habs = 50000
 
 #definir controles
-controles = as.formula(" ~ lmean_income+ unem_rate_m + inf_rate_m + lpop +lpop2")
+controles = as.formula(" ~ lmean_income+ unem_rate_m + inf_rate_m + lpop_t")
 sem_controles = as.formula("~ 1")
 
 ######################################
@@ -45,3 +45,9 @@ df = df[conta_cidade_grupo >=minimo_cidades]
 
 source("../uber2/ub_funcoes_auxiliares.R")
 dia = "202504"
+
+
+######################
+#Ajustes para o pacote do chaisemartin
+######################
+

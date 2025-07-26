@@ -66,7 +66,7 @@ pesos = df$peso
 
 
 
-m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did)
+m = feglm(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) +lpop_t
           | id_municipio + anosem_did ,
           data = df,
           weights = pesos,
