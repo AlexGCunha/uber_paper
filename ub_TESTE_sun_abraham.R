@@ -12,6 +12,7 @@ df[, uf := substr(id_municipio, 1, 2)]
 df[, region := substr(id_municipio, 1,1)]
 df[, tratado := fifelse(is.na(semestre_entrada), 0, 1)]
 df[, pop2 := pop14^2]
+df = df[ pop_m >= 50000]
 df_est = df[anosem == 20142]
 #dataset ao nível da microrregiao
 df[, manter := fifelse(id_municipio == min(id_municipio),1, 0),
@@ -21,35 +22,20 @@ df_mmc = df[manter == 1 & anosem == 20142]
 
 #Estimar propensity score
 ps_model = glm(tratado ~  lincome_r
+               + lpop_r
                # + unem_rate_m
                + unem_rate_r
                # + inf_rate_m
                + inf_rate_r
                + lpibpc_r
-               + lemployed_r
+               # + lemployed_r
                # + lpop
                # + lmean_pop_r
-               + lpop_r
+               
                + age_r
-               + factor(uf)
+               + factor(region)
                , data = df_est,
               family = 'binomial')
-
-
-# ps_model = lm(tratado ~  lincome_m
-#               +lincome_r
-#               + unem_rate_m
-#               + unem_rate_r
-#               + inf_rate_m
-#               + inf_rate_r
-#               + log(pibpc14)
-#               + log(employed_m)
-#               + lpop
-#               + lmean_pop_r
-#               + ltot_pop_r
-#               + age_m
-#               + factor(uf)
-#               , data = df_est)
 
 
 print(summary(ps_model))
@@ -89,7 +75,7 @@ df[, peso := fifelse(
 m = feols(log(emprego_privado) ~ sunab(semestre_entrada_did, anosem_did) + lpop_r_t
           | id_municipio + anosem_did + uf ,
           data = df,
-          # weights = ~peso,
+          weights = ~peso,
           cluster = 'rgi')
 
 iplot(m)
