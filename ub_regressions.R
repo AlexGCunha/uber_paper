@@ -24,7 +24,7 @@ minimo_cidades = 10
 minimo_habs = 50000
 
 #definir controles
-controles = as.formula(" ~ lincome_m + lincome_r + unem_rate_m + unem_rate_r + inf_rate_m  +inf_rate_r +lpop_r")
+controles = as.formula(" ~  lincome_m  + unem_rate_m  +inf_rate_m +lpop_m")
 sem_controles = as.formula("~ 1")
 
 ######################################

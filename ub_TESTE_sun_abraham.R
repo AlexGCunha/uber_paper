@@ -5,14 +5,38 @@
 #Tentativa Sun and Abraham com pesos
 ######################################
 library(fixest)
+
+library(devtools)
+library(cowplot)
+library(tidyverse)
+library(arrow)
+library(did)
+library(data.table)
+library(fixest)
+library(modelsummary)
+library(HonestDiD)
+library(BMisc)
+
+
+
+#abrir dataset
 df = read_parquet("../data/ub_rais_merged.parquet")
-df = df[anosem <= 20192]
+
+#parametros:
+#dropar primeiros municipios
+dropar_primeiros_munics = 1
+minimo_cidades = 10
+minimo_habs = 50000
+
 df = df[!(semestre_entrada %in% c(20141, 20142, 20151, 20152))]
-df[, uf := substr(id_municipio, 1, 2)]
-df[, region := substr(id_municipio, 1,1)]
-df[, tratado := fifelse(is.na(semestre_entrada), 0, 1)]
-df[, pop2 := pop14^2]
-df = df[ pop_m >= 50000]
+df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
+df = df[conta_cidade_grupo >=minimo_cidades]
+df = df[pop14 >= minimo_habs]
+df[,uf := substr(id_municipio,1, 2)]
+df[,region := substr(id_municipio, 1,1)]
+df[, uft := paste0(uf, ano)]
+df[, tratado := fifelse(!is.na(semestre_entrada), 1, 0)]
+
 df_est = df[anosem == 20142]
 #dataset ao nível da microrregiao
 df[, manter := fifelse(id_municipio == min(id_municipio),1, 0),
@@ -28,12 +52,11 @@ ps_model = glm(tratado ~  lincome_r
                # + inf_rate_m
                + inf_rate_r
                + lpibpc_r
-               # + lemployed_r
+               + lemployed_r
                # + lpop
                # + lmean_pop_r
-               
                + age_r
-               + factor(region)
+               + factor(uf)
                , data = df_est,
               family = 'binomial')
 
@@ -72,8 +95,9 @@ df[, peso := fifelse(
 )]
 
 
-m = feols(log(emprego_privado) ~ sunab(semestre_entrada_did, anosem_did) + lpop_r_t
-          | id_municipio + anosem_did + uf ,
+
+m = feols(log(salario_lths) ~ sunab(semestre_entrada_did, anosem_did) 
+          | id_municipio + anosem_did +uft ,
           data = df,
           weights = ~peso,
           cluster = 'rgi')

@@ -74,8 +74,9 @@ rais[, erro := max(erro), by ='rgi']
 rais = rais[erro == 0]
 rais[, erro := NULL]
 
-#voltar a colocar NA para cidades que n te uber
-rais[, semestre_entrada := fifelse(tem_uber == 0, NA, semestre_entrada)]
+#indicar cidades que tem uber se já houver na microrregiao
+rais[, semestre_entrada := fifelse(semestre_entrada == 99999, NA, semestre_entrada)]
+rais[, tem_uber := fifelse(!is.na(semestre_entrada), 1, 0)]
 
 #Criar indicador de semestre para ano e para quando uber chegou em uma cidade
 # -- isso é, um indicador para usar no pacote did de Callaway & Santanna
@@ -102,9 +103,8 @@ rais[, semestre_entrada_did := fifelse(tem_uber == 0, 0, semestre_entrada_did)]
 ###################
 #Populacao
 populacao = read_excel("../data/time_series_pop.xlsx") %>% data.table()
-populacao[, `:=`(`2011` = as.numeric(`2011`),
-                 id_municipio = as.numeric(id_municipio))]
-populacao = populacao[, .(id_municipio, `2011`, `2012`, `2013`, `2014`, `2015`, 
+populacao[, `:=`(id_municipio = as.numeric(id_municipio))]
+populacao = populacao[, .(id_municipio, `2012`, `2013`, `2014`, `2015`, 
                           `2016`, `2017`,`2018`, `2019`, `2020`)]
 populacao = populacao %>% 
   pivot_longer(cols = 2:(ncol(populacao)), names_to = 'ano', values_to = 'pop') %>% 
@@ -164,7 +164,7 @@ q1 = quantile(rais$pop14, 0.01)
 q99 = quantile(rais$pop14, 0.99)
 print(q1)
 print(q99)
-rais = rais[pop14 > q1 & pop14 < q99]
+# rais = rais[pop14 > q1 & pop14 < q99]
 rm(q1, q99)
 
 #create log pop
@@ -186,6 +186,7 @@ rais[, `:=`(lincome_m = log(mean_income_m),
             lemployed_r = log(employed_r),
             lpop_r = log(pop_r),
             lpop_r_t = log(pop_r_t),
+            lpop_m_t = log(pop),
             lpibpc_r = log(pibpc_r))]
 
 
