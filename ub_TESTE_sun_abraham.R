@@ -26,7 +26,7 @@ df = read_parquet("../data/ub_rais_merged.parquet")
 #dropar primeiros municipios
 dropar_primeiros_munics = 1
 minimo_cidades = 10
-minimo_habs = 50000
+minimo_habs = 0
 
 df = df[!(semestre_entrada %in% c(20141, 20142, 20151, 20152))]
 df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
@@ -96,12 +96,34 @@ df[, peso := fifelse(
 
 
 
-m = feols(log(salario_lths) ~ sunab(semestre_entrada_did, anosem_did) 
+m = feols(log(salario_hs) ~ sunab(semestre_entrada_did, anosem_did) 
           | id_municipio + anosem_did +uft ,
           data = df,
           weights = ~peso,
           cluster = 'rgi')
 
 iplot(m)
+
+
+######################
+#Ajustes para o pacote do chaisemartin
+######################
+chaise = copy(df)
+chaise[, tratado := fifelse(
+  tem_uber== 1 & anosem_did >= semestre_entrada_did, 1, 0)]
+chaise[, `:=`(lemprego  = log(emprego_privado),
+              lemprego_lths = log(emprego_lths),
+              lemprego_hs = log(emprego_hs))] 
+chaise = chaise[emprego_lths > 0]
+
+#pegar dummies e interagir com tempo
+mc = did_multiplegt_dyn(df = chaise,
+                        outcome = 'lemprego_lths',
+                        group = 'id_municipio', 
+                        time = 'anosem_did',
+                        treatment = 'tratado',
+                        effects = 6, placebo = 6, cluster = 'id_municipio',
+                        controls = c('lpop_r_t'),
+                        weight =  'peso')
 
 
