@@ -1,13 +1,9 @@
+teste = df[semestre_entrada_did == 12
+           & (anosem_did == 12| anosem_did == 15)]
 
-rais_path = "C:/Users/xande/OneDrive/Documentos/Doutorado/Research/RAIS"
-rais_nova = read_parquet(paste0(rais_path, "/rais_2010_teste.parquet"))
-cnova = colnames(rais_nova)
-rais_antiga = read_parquet(paste0(rais_path, "/rais_2010.parquet"))
-cantiga = colnames(rais_antiga)
+teste[, crescimento_emprego := log(emprego_privado[anosem_did == 15])
+      - log(emprego_privado[anosem_did == 12]), by = 'id_municipio']
 
-rais_antiga = rais_antiga %>% 
-  select(-c(tamanho_estabelecimento, tipo_estabelecimento))
+teste = teste[anosem_did == 15]
 
-
-write_parquet(rais_nova, "../data/testenova.parquet")
-write_parquet(rais_antiga, "../data/testeantiga.parquet")
+teste2 = teste[, .(id_municipio, emprego_privado, crescimento_emprego)]

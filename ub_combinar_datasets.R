@@ -12,6 +12,7 @@ library(readxl)
 ###################
 
 rais = read_parquet("../data/ub_painel_emprego_basico.parquet") %>% data.table()
+rais = rais[!is.na(id_municipio)]
 
 # #filtrar municipios que, em alguma categoria de emprego, não possuiam emprego em
 # #algum momentos
@@ -22,6 +23,13 @@ rais = read_parquet("../data/ub_painel_emprego_basico.parquet") %>% data.table()
 # municipios_drop <- unique(dt_zero$id_municipio)
 # rais = rais[!(id_municipio %in% municipios_drop)]
 # rm(municipios_drop, dt_zero)
+
+#manter somente municipios com pelo menos 100 empregados em todos os períodos
+min_emprego = 50
+rais[, erro := fifelse(emprego_privado < min_emprego, 1,0)]
+rais[, erro := max(erro), by = 'id_municipio']
+rais = rais[erro == 0]
+rais[, erro := NULL]
 
 rais[, id_municipio := as.integer(id_municipio)]
 
@@ -69,8 +77,9 @@ rais = merge(rais, datas_did, by = "semestre_entrada", all.x = TRUE)
 rm(datas, datas_did, anosem)
 
 #manter somente municipios sem problemas na data de entrada do uber
-#-- ou que eu sei que não possuem uber
-# rais[, tem_uber := fifelse(is.na(problema_datas), 0, tem_uber)]
+#ou seja, TAMBÉM APAGO OS MUNICIPIOS QUE TEM UBER E EU NAO SEI A DATA!!!
+#se eu retirar essa parte, tenho que obrigatoriamente tirar esses municipios que 
+#eu nao sei a data!!!
 rais = rais[problema_datas == 0 | tem_uber == 0]
 rais[, problema_datas := NULL]
 
@@ -142,13 +151,14 @@ q1 = quantile(rais$pop14, 0.01)
 q99 = quantile(rais$pop14, 0.99)
 print(q1)
 print(q99)
-rais = rais[pop14 > q1 & pop14 < q99]
+# rais = rais[pop14 > q1 & pop14 < q99]
 rm(q1, q99)
 
 #create log pop
 rais[, lpop_m := log(pop_m)]
 rais[, lpop_t := log(pop)]
-rais[, lmean_income := log(mean_income_m)]
+rais[, `:=`(lmean_income = log(mean_income_m),
+            lemployed = log(employed_m))]
 
 
 ###################
