@@ -286,7 +286,7 @@ p3 = plot_es(m3, title = "Public Wages")
 p4 = plot_es(m4, title = "Rural Wages")
 plot_grid(p1,p2, p3, p4, nrow = 2)
 
-ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 9, width = 9)
+ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 7, width = 9)
 
 
 
