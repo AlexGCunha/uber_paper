@@ -86,33 +86,45 @@ cbo3 = df %>%
 write_parquet(cbo2, "../data/cbo_2digs.parquet")
 write_parquet(cbo3, "../data/cbo_3digs.parquet")
 
+#adicionar dados de mmc
+micro = read_excel('../data/regioes_geograficas.xlsx') %>% data.table()
+micro = micro[, .(CD_GEOCODI, cod_rgi, nome_mun)]
+colnames(micro) = c("id_municipio", 'rgi', 'nome_mun')
+micro[, `:=`(id_municipio = as.integer(id_municipio),
+             rgi = as.integer(rgi))]
+micro[, munic := substr(id_municipio, 1, 6)]
+micro[, id_municipio := NULL]
 
-#aggregate at municipality level
+df = df %>% 
+  left_join(micro, by = 'munic')
+
+
+#aggregate at microrregion level
 agg = df %>% 
-  group_by(munic) %>% 
-  summarise(pop_m = sum(weight),
-            employed_m = sum(employed * weight, na.rm = T),
-            informal_m = sum(informal * weight, na.rm = T),
-            pea_m = sum(in_pea*weight, na.rm = T),
-            tot_income_m = sum(wage_total*weight, na.rm = T),
-            lths_m = sum(lths*weight, na.rm = T),
-            hs_some_college_m = sum(hs_some_college * weight, na.rm = T),
-            college_more_m = sum(college_more * weight, na.rm = T),
+  group_by(rgi) %>% 
+  summarise(pop_r = sum(weight),
+            employed_r = sum(employed * weight, na.rm = T),
+            informal_r = sum(informal * weight, na.rm = T),
+            pea_r = sum(in_pea*weight, na.rm = T),
+            tot_income_r = sum(wage_total*weight, na.rm = T),
+            lths_r = sum(lths*weight, na.rm = T),
+            hs_some_college_r = sum(hs_some_college * weight, na.rm = T),
+            college_more_r = sum(college_more * weight, na.rm = T),
             aux_age = sum(age * in_pea * weight)) %>% 
   ungroup()
 
 #additional variable creation
 agg = agg %>% 
-  mutate(inf_rate_m = informal_m/employed_m,
-         unem_rate_m = 1 - employed_m/pea_m,
-         lths_rate_m = lths_m/pop_m,
-         hs_rate_m = hs_some_college_m/pop_m,
-         college_rate_m = college_more_m/pop_m,
-         mean_income_m = tot_income_m/employed_m,
-         age_m = aux_age/pea_m)
+  mutate(inf_rate_r = informal_r/employed_r,
+         unem_rate_r = 1 - employed_r/pea_r,
+         lths_rate_r = lths_r/pop_r,
+         hs_rate_r = hs_some_college_r/pop_r,
+         college_rate_r = college_more_r/pop_r,
+         mean_income_r = tot_income_r/employed_r,
+         age_r = aux_age/pea_r)
 
 
-write_parquet(agg,"../data/munic_data_10.parquet")
+write_parquet(agg,"../data/rgi_data_10.parquet")
 rm(list = ls())
 gc()
 

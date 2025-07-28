@@ -1,2 +1,2 @@
-rais[is.na(semestre_entrada) & anosem == 20142]
-!
+teste = rais[anosem == 20142]
+count(teste,semestre_entrada)
