@@ -28,6 +28,9 @@ minimo_habs = 50000
 controles = as.formula(" ~ lmean_income+  lemployed")
 sem_controles = as.formula("~ 1")
 
+source("../uber2/ub_funcoes_auxiliares.R")
+data = "202507"
+
 ######################################
 #Ajustes
 ######################################
@@ -39,14 +42,71 @@ if(dropar_primeiros_munics == 1){
 #Dropar minimo de habitantes
 df = df[pop14 >= minimo_habs]
 
+df[,uf := substr(id_municipio,1, 2)]
+df[,region := substr(id_municipio, 1,1)]
+df[, tratado := fifelse(!semestre_entrada_did != 0, 1, 0)]
+df_est = df[anosem == 20142]
+
+######################################
+#Propensity Score
+######################################
+#Estimar propensity score
+ps_model = glm(tratado ~  log(mean_income_m)
+               + log(pea_m)
+               + unem_rate_m
+               + inf_rate_m
+               # + lemployed_r
+               # + factor(region)
+               , data = df_est,
+               family = 'binomial')
+
+
+print(summary(ps_model))
+df_est[, prob := predict(ps_model, type = 'response')]
+df_est[, tratado := as.character(tratado)]
+
+#calcular probs min e maxima por tratamento
+prob_min_tratado = min(df_est[tratado==1]$prob)
+prob_min_controle = min(df_est[tratado==0]$prob)
+prob_max_tratado = max(df_est[tratado==1]$prob)
+prob_max_controle = max(df_est[tratado==0]$prob)
+
+
+#Adicionar ao df principal
+df_est = df_est[, .(id_municipio, prob)]
+df = merge(df, df_est, by = 'id_municipio', all.x = TRUE)
+
+#limpar probs muito altas ou muito baixas
+# df = df[prob >= 0.01 & prob <= 0.99]
+# df = df[prob >= 
+#           max(prob_min_tratado, prob_min_controle) & prob <= min(prob_max_tratado, prob_max_controle)]
+
+#dropar grupos onde o numero de cidades tratadas no periodo é menor que o minimo
+df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
+df = df[conta_cidade_grupo >=minimo_cidades]
+
+
+#Grafico da distribuicao de população e Propensity Scores por tratamento
+df_plot = df[anosem == 20142]
+df_plot[, lpea_m := log(pea_m)]
+df_plot[, tratado := as.character(tratado)]
+p1 = ggplot(df_plot, aes(prob, color = tratado, group = tratado))+geom_density()+
+  labs(title = 'Distribuicao Prop. Score por tratamento')+theme(legend.position = 'bottom')
+
+p2 = ggplot(df_plot, aes(lpea_m, color = tratado, group = tratado))+geom_density()+
+  labs(title = 'Distribuicao Log PEA por tratamento')+theme(legend.position = 'bottom')
+
+plot_grid(p2, p1)
+path_save = paste0('../Output/', data, '/')
+ggsave(paste0(path_save,"antiga_distribuicoes_prob_pop.png"), height = 5, width = 9)
+
 #dropar grupos onde o numero de cidades tratadas no periodo é menor que o minimo
 df[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
 df = df[conta_cidade_grupo >=minimo_cidades]
 
 
 
-source("../uber2/ub_funcoes_auxiliares.R")
-dia = "202504"
+
 
 ######################################
 #Summary Statistics
