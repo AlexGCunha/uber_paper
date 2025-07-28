@@ -39,7 +39,8 @@ rais = rais[, .(ano = first(ano),
                 salario_lths = weighted.mean(salario_lths, emprego_lths, na.rm = TRUE),
                 salario_privado = weighted.mean(salario_privado, emprego_privado, na.rm = TRUE),
                 salario_publico = weighted.mean(salario_publico, emprego_publico, na.rm = TRUE),
-                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE)
+                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE),
+                salario_full = weighted.mean(salario_privado_full, emprego_privado_full, na.rm = TRUE)
 ),
 by = .(rgi, anosem)]
 
@@ -130,6 +131,7 @@ rais = rais[!is.na(pop_r)]
 rais[, `:=`(lincome_r = log(mean_income_r),
             lemployed_r = log(employed_r),
             lpop_r = log(pop_r),
+            lpea_r = log(pea_r),
             lpop = log(pop))]
 
 
@@ -137,56 +139,56 @@ rais[, `:=`(lincome_r = log(mean_income_r),
 #SIS-SUS - Mortalidade do DataSUS
 #DEMORA PARA RODAR E EU NÃO ACHEI NENHUM EFEITO, ENTÃO VOU DEIXAR COMENTADO
 ###################
-
-sis = read_parquet("../data/SIM.parquet") %>% data.table()
-#Acidantes de transporte terrestre estao entre os CID V01 e V99
-
-#definir letra e codigos do cid
-sis[, letra := substr(causa_basica, 1,1)]
-sis[, codigo := as.integer(substr(causa_basica, 2,3))]
-sis[, id_municipio := as.integer(substr(id_municipio_ocorrencia, 1, 6))]
-#definir se foi acidente veicular
-sis[, acidente_veicular := fcase(letra == "V" & codigo %in% seq(1,89,1), 1,
-                                 default = 0)]
-
-#Definir semestre do obito
-sis[, `:=`(mes_obito = as.integer(format(data_obito, '%m')),
-           ano_obito = as.integer(format(data_obito, '%Y')))]
-sis = sis[!is.na(mes_obito)]
-sis[, semestre_obito := fcase(mes_obito <= 6, 1,
-                             default = 2)]
-sis[, anosem := as.integer(paste0(ano_obito, semestre_obito))]
-
-#contar mortes por homicídio e acidente veicular, por municipio e semestre
-homicidio = sis[circunstancia_obito == "3", .(homicidios = .N),
-               by = .(id_municipio, anosem)]
-
-acidente = sis[acidente_veicular == 1, .(mortes_acidente_carro = .N),
-          by = .(id_municipio, anosem)]
-homicidio = homicidio[!is.na(id_municipio)]
-acidente = acidente[!is.na(id_municipio)]
-
-#adicionar dados de mmc
-micro[, id_municipio := as.integer(substr(id_municipio, 1, 6))]
-homicidio = merge(homicidio, micro, by = 'id_municipio', all.x = TRUE)
-acidente = merge(acidente, micro, by = 'id_municipio', all.x = TRUE)
-
-#agregar ao nível da microrregiao e anosem
-homicidio = homicidio[, .(homicidios = sum(homicidios)), by = .(rgi, anosem)]
-acidente = acidente[, .(mortes_acidente_carro = sum(mortes_acidente_carro)), by = .(rgi, anosem)]
-
-#merge
-rais = merge(rais, homicidio, by = c("rgi", "anosem"), all.x = TRUE)
-rais = merge(rais, acidente, by = c("rgi", "anosem"), all.x = TRUE)
-
-rais[, homicidios := fifelse(is.na(homicidios), 0, homicidios)]
-
-rais[, mortes_acidente_carro := fifelse(is.na(mortes_acidente_carro), 0,
-                                      mortes_acidente_carro)]
-rais[, homicidios_pc := homicidios*100000/(pop)]
-rais[, mortes_acidente_carro_pc := mortes_acidente_carro*100000/(pop)]
-rm(sis, homicidio, acidente)
-
+# 
+# sis = read_parquet("../data/SIM.parquet") %>% data.table()
+# #Acidantes de transporte terrestre estao entre os CID V01 e V99
+# 
+# #definir letra e codigos do cid
+# sis[, letra := substr(causa_basica, 1,1)]
+# sis[, codigo := as.integer(substr(causa_basica, 2,3))]
+# sis[, id_municipio := as.integer(substr(id_municipio_ocorrencia, 1, 6))]
+# #definir se foi acidente veicular
+# sis[, acidente_veicular := fcase(letra == "V" & codigo %in% seq(1,89,1), 1,
+#                                  default = 0)]
+# 
+# #Definir semestre do obito
+# sis[, `:=`(mes_obito = as.integer(format(data_obito, '%m')),
+#            ano_obito = as.integer(format(data_obito, '%Y')))]
+# sis = sis[!is.na(mes_obito)]
+# sis[, semestre_obito := fcase(mes_obito <= 6, 1,
+#                              default = 2)]
+# sis[, anosem := as.integer(paste0(ano_obito, semestre_obito))]
+# 
+# #contar mortes por homicídio e acidente veicular, por municipio e semestre
+# homicidio = sis[circunstancia_obito == "3", .(homicidios = .N),
+#                by = .(id_municipio, anosem)]
+# 
+# acidente = sis[acidente_veicular == 1, .(mortes_acidente_carro = .N),
+#           by = .(id_municipio, anosem)]
+# homicidio = homicidio[!is.na(id_municipio)]
+# acidente = acidente[!is.na(id_municipio)]
+# 
+# #adicionar dados de mmc
+# micro[, id_municipio := as.integer(substr(id_municipio, 1, 6))]
+# homicidio = merge(homicidio, micro, by = 'id_municipio', all.x = TRUE)
+# acidente = merge(acidente, micro, by = 'id_municipio', all.x = TRUE)
+# 
+# #agregar ao nível da microrregiao e anosem
+# homicidio = homicidio[, .(homicidios = sum(homicidios)), by = .(rgi, anosem)]
+# acidente = acidente[, .(mortes_acidente_carro = sum(mortes_acidente_carro)), by = .(rgi, anosem)]
+# 
+# #merge
+# rais = merge(rais, homicidio, by = c("rgi", "anosem"), all.x = TRUE)
+# rais = merge(rais, acidente, by = c("rgi", "anosem"), all.x = TRUE)
+# 
+# rais[, homicidios := fifelse(is.na(homicidios), 0, homicidios)]
+# 
+# rais[, mortes_acidente_carro := fifelse(is.na(mortes_acidente_carro), 0,
+#                                       mortes_acidente_carro)]
+# rais[, homicidios_pc := homicidios*100000/(pop)]
+# rais[, mortes_acidente_carro_pc := mortes_acidente_carro*100000/(pop)]
+# rm(sis, homicidio, acidente)
+# 
 
 
 #Salvar x

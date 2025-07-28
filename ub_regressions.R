@@ -23,7 +23,7 @@ dropar_primeiros_munics = 1
 minimo_cidades = 10
 
 #definir controles
-controles = as.formula(" ~  lincome_r  + unem_rate_r  +inf_rate_r +lpop_r")
+controles = as.formula(" ~  lincome_r  + unem_rate_r  +inf_rate_r +lpea_r")
 sem_controles = as.formula("~ 1")
 
 #definir pasta
@@ -47,7 +47,7 @@ df_est = df[anosem == 20142]
 ######################################
 #Estimar propensity score
 ps_model = glm(tratado ~  lincome_r
-               + lpop_r
+               + lpea_r
                + unem_rate_r
                + inf_rate_r
                # + lemployed_r
@@ -81,8 +81,17 @@ df[, conta_cidade_grupo := length(unique(rgi)), by = .(semestre_entrada_did)]
 df = df[conta_cidade_grupo >=minimo_cidades]
 
 
+#Grafico da distribuicao de população e Propensity Scores por tratamento
+df_plot = df[anosem == 20142]
+df_plot[, tratado := as.character(tratado)]
+p1 = ggplot(df_plot, aes(prob, color = tratado, group = tratado))+geom_density()+
+  labs(title = 'Distribuicao Prop. Score por tratamento')+theme(legend.position = 'bottom')
 
+p2 = ggplot(df_plot, aes(lpea_r, color = tratado, group = tratado))+geom_density()+
+  labs(title = 'Distribuicao Log PEA por tratamento')+theme(legend.position = 'bottom')
 
+plot_grid(p2, p1)
+ggsave(paste0(path_save,"distribuicoes_prob_pop.png"), height = 5, width = 9)
 
 ######################################
 #Summary Statistics
@@ -110,7 +119,7 @@ datasummary_balance(`Population`  + `Mean Income` + `Unemployment Rate`
                     stars = TRUE)
 
 
-tab = df_sum[tem_uber == 1, (count = .N), by = semestre_entrada]
+tab = df_sum[, (count = .N), by = semestre_entrada]
 tab[, `Semestre Entrada` := as.integer(semestre_entrada)]
 tab[, `N Municípios` := as.integer(V1)]
 tab[, `:=`(semestre_entrada = NULL, V1 = NULL)]
