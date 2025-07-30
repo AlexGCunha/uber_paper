@@ -55,61 +55,13 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
               data = df_use, 
               pl = TRUE)
   
-  m1_agg = aggte(m1, type = "dynamic", min_e = -6,max_e = 5, na.rm = TRUE)
+  m1_agg = aggte(m1, type = "dynamic", min_e = -8,max_e = 3, na.rm = TRUE)
   return(list(m1, m1_agg))
   
 }
 
 
-#Regressao 2WFE
-regressao_fe = function(variavel_dependente, 
-                        dep_em_log = 0, dep_em_relativo_emp =0,
-                        dep_em_relativo_pea = 0, 
-                        minimo_cidades = 0, 
-                        control18 =0 ){
-  df_use = copy(df)
-  
-  
-  if(dep_em_log ==1){
-    variaveis = c(variavel_dependente)
-    df_use[, (variaveis) := lapply(.SD, function(x) x= log(1 + x)),
-           .SDcols = variaveis]
-  }
-  
-  if(dep_em_relativo_pea == 1){
-    variaveis = c(variavel_dependente)
-    df_use[, (variaveis) := lapply(.SD, function(x) x= x/pea_m),
-           .SDcols = variaveis]
-  }
-  
-  if(dep_em_relativo_emp == 1){
-    variaveis = c(variavel_dependente)
-    df_use[, (variaveis) := lapply(.SD, function(x) x = x/emprego_privado),
-           .SDcols = variaveis]
-  }
-  
-  
-  #dropar grupos onde o numero de cidades tratadas no periodo é menor que o minimo
-  df_use[, conta_cidade_grupo := length(unique(id_municipio)), by = .(semestre_entrada_did)]
-  df_use = df_use[conta_cidade_grupo >=minimo_cidades]
-  
-  #criar indicador de periodos did
-  df_use = df_use[tem_uber == 0 |(tem_uber == 1 & !is.na(semestre_entrada))]
-  df_use[, uber := fcase(tem_uber == 1 & anosem >= semestre_entrada, 1, 
-                         default = 0)]
-  df_use[, semestre := as.integer(substr(anosem, 5,5))]
-  df_use[, semestre_relativo_did := anosem_did - semestre_entrada_did]
-  
-  formula = paste0(variavel_dependente, " ~ i(semestre_relativo_did, ref = '-1'):tem_uber |
-               anosem + id_municipio ")
-  formula = as.formula(formula)
-  m1 = feols(formula ,
-             data = df_use[(tem_uber == 0 | (tem_uber == 1 & semestre_relativo_did %in% c(-6:5))) ],
-             cluster = "id_municipio")
-  
-  return(m1)
-  
-}
+
 
 #Plot Function
 plot_es = function(model, title = ""){
@@ -117,10 +69,22 @@ plot_es = function(model, title = ""){
   se = unlist(model)$overall.se
   att_abs = abs(att)
   p = (1- pnorm(att_abs/se))*2
-  if(abs(att) - 1.96*se > 0){
-    message = paste0("ATT: ", round(att,3), "*", " (", round(p,2), ")")
+  #Guarantee p is rounded to 3 decimals
+  p = as.character(round(p, 3))
+  #I want to appear all 3 decimals, even if they are "0"
+  if(p == 0){
+    p = "0.000"
   } else{
-    message = paste0("ATT: ", round(att,3 ), " (", round(p,2), ")")
+    p = paste0(p, "00000")
+    p = substr(p, 1, 5)
+  }
+  
+  
+  
+  if(abs(att) - 1.96*se > 0){
+    message = paste0("ATT: ", round(att,3), "*", " (", p, ")")
+  } else{
+    message = paste0("ATT: ", round(att,3 ), " (", p, ")")
   }
   
   #define position:
@@ -129,9 +93,10 @@ plot_es = function(model, title = ""){
   position = max_estimate + 1.5*max_se
   
   plot = ggdid(model[[2]], title = title)+
-    coord_cartesian(xlim = c(-6, 5)) + 
-    xlim(-6,6)+
-    theme(plot.title = element_text(size=8)) +
+    # coord_cartesian(xlim = c(-6, 5)) + 
+    # xlim(-6,6)+
+    theme(plot.title = element_text(size=8),
+          legend.position = 'none') +
     annotate("text", x = -6, y = position,label = message, hjust = 0)
 }
 

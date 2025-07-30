@@ -37,7 +37,8 @@ df_est = df[anosem == 20142]
 ######################################
 #Estimar propensity score
 ps_model = glm(tratado ~  lincome_r
-               + log(pop_r)
+               + log(pea_r)
+               # + log(pop_max)
                + unem_rate_r
                + inf_rate_r
                # + lemployed_r
@@ -104,13 +105,13 @@ chaise[, `:=`(lemprego  = log(emprego_privado),
 chaise = chaise[emprego_lths > 0]
 
 #pegar dummies e interagir com tempo
-mc = did_multiplegt_dyn(df = chaise,
-                        outcome = 'lemprego',
-                        group = 'rgi',
-                        time = 'anosem_did',
-                        treatment = 'tratado',
-                        effects = 6, placebo = 6, cluster = 'rgi',
-                        # controls = c('lpop_r_t'),
-                        weight =  'peso')
-print(mc)
+# mc = did_multiplegt_dyn(df = chaise,
+#                         outcome = 'lemprego',
+#                         group = 'rgi',
+#                         time = 'anosem_did',
+#                         treatment = 'tratado',
+#                         effects = 6, placebo = 6, cluster = 'rgi',
+#                         # controls = c('lpop_r_t'),
+#                         weight =  'peso')
+# print(mc)
 

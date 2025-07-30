@@ -69,21 +69,21 @@ df = df %>%
   mutate(cbo_2dig = substr(cbo_correct, 1,2),
          cbo_3dig = substr(cbo_correct,1,3))
 
-#calculate mean wages by cbo
-cbo2 = df %>% 
-  filter(employed == 1) %>% 
-  group_by(cbo_2dig) %>% 
-  summarise(mean_wage_2dig = weighted.mean(inc_main_job, weight)) %>% 
-  ungroup()
-
-
 cbo3 = df %>% 
   filter(employed == 1) %>% 
   group_by(cbo_3dig) %>% 
   summarise(mean_wage_3dig = weighted.mean(inc_main_job, weight)) %>% 
   ungroup()
 
-write_parquet(cbo2, "../data/cbo_2digs.parquet")
+#define quartile of occupation wage
+quants = quantile(cbo3$mean_wage_3dig, c(0.25, 0.50, 0.75))
+cbo3 = cbo3 %>% 
+  mutate(rank_wage_cbo = case_when(
+    mean_wage_3dig <= quants[1] ~ 4, 
+    mean_wage_3dig > quants[1] & mean_wage_3dig <= quants[2] ~ 3,
+    mean_wage_3dig > quants[2] & mean_wage_3dig <= quants[3] ~ 2,
+    TRUE ~ 1))
+
 write_parquet(cbo3, "../data/cbo_3digs.parquet")
 
 #adicionar dados de mmc

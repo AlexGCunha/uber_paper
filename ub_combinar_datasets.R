@@ -25,22 +25,44 @@ rais = merge(rais, micro, by = 'id_municipio', all.x = TRUE)
 #Agregar dados ao nível da regiao
 rais = rais[, .(ano = first(ano), 
                 emprego_privado = sum(emprego_privado),
-                emprego_hs = sum(emprego_hs),
+                admissao =  sum(admitido), 
+                demissao = sum(demitido),
+                emprego_homens = sum(emprego_homens),
+                emprego_mulheres = sum(emprego_mulheres),
                 emprego_lths = sum(emprego_lths),
+                emprego_hs_somecol = sum(emprego_hs_somecol),
+                emprego_col = sum(emprego_col),
+                emprego_baixo_sal = sum(emprego_baixo_sal),
+                emprego_med_sal = sum(emprego_med_sal),
+                emprego_alto_sal = sum(emprego_alto_sal),
+                emprego_altissimo_sal = sum(emprego_altissimo_sal),
+                emprego_baixo_cbo = sum(emprego_baixo_cbo),
+                emprego_med_cbo = sum(emprego_med_cbo),
+                emprego_alto_cbo = sum(emprego_alto_cbo),
+                emprego_altissimo_cbo = sum(emprego_altissimo_cbo),
+                emprego_baixo_idade = sum(emprego_baixo_idade),
+                emprego_med_idade = sum(emprego_med_idade),
+                emprego_alto_idade = sum(emprego_alto_idade),
                 emprego_meio_periodo = sum(emprego_meio_periodo),
-                emprego_meio_periodo_hs = sum(emprego_meio_periodo_hs),
-                emprego_meio_periodo_lths = sum(emprego_meio_periodo_lths),
                 emprego_temporario = sum(emprego_temporario),
-                emprego_temporario_hs = sum(emprego_temporario_hs),
-                emprego_temporario_lths = sum(emprego_temporario_lths),
                 emprego_publico = sum(emprego_publico),
                 emprego_rural = sum(emprego_rural),
-                salario_hs = weighted.mean(salario_hs, emprego_hs, na.rm = TRUE),
-                salario_lths = weighted.mean(salario_lths, emprego_lths, na.rm = TRUE),
                 salario_privado = weighted.mean(salario_privado, emprego_privado, na.rm = TRUE),
+                salario_homens = weighted.mean(salario_homens, emprego_homens, na.rm = TRUE),
+                salario_mulheres = weighted.mean(salario_mulheres, emprego_mulheres, na.rm = TRUE),
+                salario_lths = weighted.mean(salario_lths, emprego_lths, na.rm = TRUE),
+                salario_hs_somecol = weighted.mean(salario_hs_somecol, emprego_hs_somecol, na.rm = TRUE),
+                salario_col = weighted.mean(salario_col, emprego_col, na.rm = TRUE),
+                salario_baixo_cbo= weighted.mean(salario_baixo_cbo, emprego_baixo_cbo, na.rm = TRUE),
+                salario_med_cbo = weighted.mean(salario_med_cbo, emprego_med_cbo, na.rm = TRUE),
+                salario_alto_cbo = weighted.mean(salario_alto_cbo, emprego_alto_cbo, na.rm = TRUE),
+                salario_altissimo_cbo = weighted.mean(salario_altissimo_cbo, emprego_altissimo_cbo, na.rm = TRUE),
+                salario_baixo_idade = weighted.mean(salario_baixo_idade, emprego_baixo_idade, na.rm = TRUE),
+                salario_med_idade = weighted.mean(salario_med_idade, emprego_med_idade, na.rm = TRUE),
+                salario_alto_idade = weighted.mean(salario_alto_idade, emprego_alto_idade, na.rm = TRUE),
                 salario_publico = weighted.mean(salario_publico, emprego_publico, na.rm = TRUE),
-                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE),
-                salario_full = weighted.mean(salario_privado_full, emprego_privado_full, na.rm = TRUE)
+                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE)
+               
 ),
 by = .(rgi, anosem)]
 
@@ -109,12 +131,13 @@ populacao[, ano := as.integer(ano)]
 
 #adicionar dados de mmc e agregar
 populacao = merge(populacao, micro, by = 'id_municipio', all.x = TRUE)
-populacao = populacao[, .(pop = sum(pop)), by = .(ano, rgi)]
+populacao = populacao[, .(pop = sum(pop), pop_max = max(pop)), by = .(ano, rgi)]
 
 rais = merge(rais, populacao, by = c('rgi', 'ano'), all.x = TRUE)
 
 #populacao em 2014, logo antes do uber chegar
 rais[, pop_14 := pop[anosem == 20142], by = 'rgi']
+rais[, pop_14_max := pop_max[anosem == 20142], by = 'rgi']
 
 ###################
 #Variáveis Censo 2010
@@ -132,7 +155,8 @@ rais[, `:=`(lincome_r = log(mean_income_r),
             lemployed_r = log(employed_r),
             lpop_r = log(pop_r),
             lpea_r = log(pea_r),
-            lpop = log(pop))]
+            lpop = log(pop),
+            lpop_max = log(pop_14_max))]
 
 
 ###################

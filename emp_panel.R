@@ -11,6 +11,7 @@ rais_path = "C:/Users/xande/OneDrive/Documentos/Doutorado/Research/RAIS/"
 
 years = 2012:2021
 precos = read_excel("../data/deflator_inpc.xlsx", sheet = "anual_junho")
+cbo = read_parquet("../data/cbo_3digs.parquet")
 setDT(precos)
 precos[, indice :=NULL]
 
@@ -23,29 +24,31 @@ for(y in years){
   
   #corrigir salarios para inflacao (usar deflator de junho de cada ano)
   rais = merge(rais, precos, by = "ano", all.x = TRUE)
-  rais[, valor_remuneracao_media := valor_remuneracao_media * deflator_10]
+  rais[, salario := valor_remuneracao_media * deflator_24]
   
-  #base com dados de salários por ocupação
-  # salario_cbo = read_parquet("../data/cbo_3digs.parquet")
+  #adicionar salario medio e rank por cbo
+  rais[, cbo_3dig := substr(rais$cbo_2002, 1, 3)]
+  rais = merge(rais, cbo, by = 'cbo_3dig', all.x = TRUE)
   
-  #adicionar salário com base nos 3 primeiros dígitos da ocupação (CBO)
-  # rais[, cbo_3dig := substr(cbo_2002, 1,3)]
-  # rais = merge(rais, salario_cbo, by = "cbo_3dig", all.x = TRUE)
+  #adicionar grupos de idade
+  rais[, grupo_idade := fcase(idade <= 30, 1,
+                              idade > 30 & idade < 45, 2,
+                              idade > 45, 3, default = NA)]
   
-  #mudanca: antes considerava emprego privado (e meio periodo) como tipo_vinculo == 10.
-  #agora estou considerando todos os empregos
-  vinculos_publicos = c(30, 31, 35)
-  vinculos_rurais = c(20, 25, 70, 75)
-  
+  #print share of workers by cbo status
+  if(y == 2014){
+    teste = count(rais, rank_wage_cbo) %>% 
+      mutate(share = n/sum(n)) %>% 
+      print()
+  }
   
   ##indicadores de tipo de emprego
+  vinculos_publicos = c(30, 31, 35)
+  vinculos_rurais = c(20, 25, 70, 75)
   #privado full time sem prazo determinado
   rais[, privado := fcase(!(tipo_vinculo %in% vinculos_publicos) & 
                             !(tipo_vinculo %in% vinculos_rurais) &
                             natureza_juridica >2038, 1, default =0)]
-  
-  ##tipo_vinculo = 10:  Trabalhador urbano vinculado a empregador pessoa jurídica
-  # por contrato de trabalho regido pela CLT, por prazo indeterminado
   
   #publico
   rais[, publico := fcase(tipo_vinculo %in% vinculos_publicos, 1, default = 0)]
@@ -54,10 +57,6 @@ for(y in years){
   rais[,temporario := fcase(tipo_vinculo %in% c(50, 60, 90, 95, 96, 97) &
                               natureza_juridica > 2038, 1, default = 0)]
   
-  rais[, n_temporario := fcase(!(tipo_vinculo %in% vinculos_publicos) & 
-                                 !(tipo_vinculo %in% vinculos_rurais) &
-                                 !(tipo_vinculo %in% c(50, 60, 90, 95, 96, 97)) &
-                                 natureza_juridica >2038, 1, default =0)]
   
   #privado meio período
   rais[, meio_periodo := fcase(!(tipo_vinculo %in% vinculos_publicos) &
@@ -65,29 +64,29 @@ for(y in years){
                                  quantidade_horas_contratadas <= 20 &
                                  natureza_juridica > 2038, 1, default = 0)]
   
-  #privado, urbano, por prazo indeterminado
-  rais[, privado_full := fcase(tipo_vinculo %in% c(10) & 
-                                 !(tipo_vinculo %in% vinculos_rurais) &
-                                 natureza_juridica > 2038, 1, default = 0)]
-  
   #rural
   rais[, rural := fcase(!(tipo_vinculo %in% vinculos_publicos) & 
-                            tipo_vinculo %in% vinculos_rurais &
-                            natureza_juridica >2038, 1, default =0)]
+                          tipo_vinculo %in% vinculos_rurais &
+                          natureza_juridica >2038, 1, default =0)]
   
   #rodar loop para definir variaveis ao nivel trimestral:
   for(s in 1:2){
     ##filtrar pessoas trabalhando nesse trimestre
     mes_aux = s*6
-    #definir empregados como todos, com excessão de:
-    #-ainda não admitidos
-    #-já demitidos
-    # rais_s = copy(rais)
-    # rais_s[, empregado := fcase(
-    #   mes_admissao > mes_aux & !is.na(mes_admissao), 0,
-    #   mes_desligamento <= mes_aux & !is.na(mes_desligamento), 0,
-    #   default = 1
-    # )]
+    min_mes_semestre = ifelse(s == 1, 1, 7)
+    
+    #definir admitidos e demitidos
+    rais_alt = copy(rais)
+    rais_alt[, `:=`(
+      demitido_privado = fcase(mes_desligamento <= mes_aux
+                               & mes_desligamento >= min_mes_semestre
+                               & privado == 1, 1, default = 0),
+      admitido_privado = fcase(mes_admissao <= mes_aux
+                               & mes_admissao >= min_mes_semestre
+                               & privado == 1, 1, default = 0))] 
+    rais_alt = rais_alt[, .(demitido = sum(demitido_privado),
+                            admitido = sum(admitido_privado)),
+                        by = .(id_municipio)]
     
     #dropar ainda não foi admitidos
     rais_s = rais[mes_admissao <= mes_aux | is.na(mes_admissao)]
@@ -107,156 +106,131 @@ for(y in years){
       }
     }
     
-    # #definir admitidos e demitidos no trimestre
-    # if(s == 1){
-    #   rais_s[, `:=`(admitido = fcase(mes_admissao <= 6, 1, default = 0),
-    #                 demitido = fcase(mes_desligamento <= 6
-    #                                  & motivo_desligamento == '11', 
-    #                                  1, default = 0),
-    #                 demitido_total = fcase(mes_desligamento <= 6,
-    #                                        1, default = 0)
-    #   )]
-    # } else{
-    #   rais_s[, `:=`(admitido = fcase(mes_admissao %in% c(7:12), 1, default = 0),
-    #                 demitido = fcase(mes_desligamento %in% c(7:12)
-    #                                  & motivo_desligamento == '11',
-    #                                  1, default = 0),
-    #                 demitido_total = fcase(mes_desligamento %in% c(7:12),
-    #                                        1, default = 0))]
-    # }
     
-    #Printar algumas informações de salário e emprego em 2014/2
-    if(y == 2014 & s == 2){
-      emp = tibble(total = sum(rais_s$privado),
-                   meio_periodo = sum(rais_s$meio_periodo),
-                   temporario = sum(rais_s$temporario))
-      sal = tibble(total = mean(rais_s$valor_remuneracao_media[rais_s$privado ==1]),
-                   meio_periodo =
-                     mean(rais_s$valor_remuneracao_media[rais_s$meio_periodo ==1]),
-                   temporario = 
-                     mean(rais_s$valor_remuneracao_media[rais_s$temporario == 1]))
-      
-      print(emp)
-      print(sal)
-    }
     
     ##Agrupar por tipo de emprego
     privado = rais_s[privado == 1, 
                      .(emprego_privado = .N
                        ,tenure_privado = mean(tempo_emprego)
-                       ,salario_privado = mean(valor_remuneracao_media)
-                       # salario_privado_cbo = mean(mean_wage_3dig),
-                       # admitidos_privado = sum(admitido),
-                       # demitidos_privado = sum(demitido),
-                       # demitidos_total_privado = sum(demitido_total)
-                       ),
+                       ,salario_privado = mean(salario)
+                     ),
                      by = .(id_municipio)]
+    
+    homens = rais_s[privado == 1 & sexo == "1", 
+                    .(emprego_homens= .N
+                      ,tenure_homens = mean(tempo_emprego)
+                      ,salario_homens = mean(salario)
+                    ),
+                    by = .(id_municipio)]
+    
+    mulheres = rais_s[privado == 1 & sexo == "2", 
+                      .(emprego_mulheres = .N
+                        ,tenure_mulheres = mean(tempo_emprego)
+                        ,salario_mulheres = mean(salario)
+                      ),
+                      by = .(id_municipio)]
     
     privado_lths = rais_s[privado == 1 & grau_instrucao_apos_2005 < 7, 
                           .(emprego_lths = .N 
                             ,tenure_lths = mean(tempo_emprego) 
-                            ,salario_lths = mean(valor_remuneracao_media)
-                            # ,salario_lths_cbo = mean(mean_wage_3dig)
-                            ),
+                            ,salario_lths = mean(salario)
+                          ),
                           by = .(id_municipio)]
     
-    privado_hs = rais_s[privado == 1 & grau_instrucao_apos_2005 >=7, 
-                        .(emprego_hs = .N
-                          ,tenure_hs = mean(tempo_emprego) 
-                          ,salario_hs = mean(valor_remuneracao_media)
-                          # ,salario_hs_cbo = mean(mean_wage_3dig)
-                          ),
-                        by = .(id_municipio)]
+    privado_hs_somecol = rais_s[privado == 1 & grau_instrucao_apos_2005  %in% c(7,8), 
+                                .(emprego_hs_somecol = .N
+                                  ,tenure_hs_somecol = mean(tempo_emprego) 
+                                  ,salario_hs_somecol = mean(salario)
+                                ),
+                                by = .(id_municipio)]
     
-    # privado_baixo_sal = rais_s[privado == 1 & valor_remuneracao_media <= 3000, 
-    #                     .(emprego_baixo_sal = sum(empregado), 
-    #                       tenure_baixo_sal = mean(tempo_emprego), 
-    #                       salario_baixo_sal = mean(valor_remuneracao_media)),
-    #                     by = .(id_municipio)]
-    # 
-    # privado_alto_sal = rais_s[privado == 1 & valor_remuneracao_media > 3000, 
-    #                            .(emprego_alto_sal = sum(empregado), 
-    #                              tenure_alto_sal = mean(tempo_emprego), 
-    #                              salario_alto_sal = mean(valor_remuneracao_media)),
-    #                            by = .(id_municipio)]
+    privado_col = rais_s[privado == 1 & grau_instrucao_apos_2005  >8, 
+                         .(emprego_col = .N
+                           ,tenure_col = mean(tempo_emprego) 
+                           ,salario_col = mean(salario)
+                         ),
+                         by = .(id_municipio)]
+    
+    privado_baixo_sal = rais_s[privado == 1 & salario <= 1500,
+                               .(emprego_baixo_sal = .N,
+                                 tenure_baixo_sal = mean(tempo_emprego)),
+                               by = .(id_municipio)]
+    
+    privado_med_sal = rais_s[privado == 1 & salario > 1500 & salario <= 3000,
+                             .(emprego_med_sal = .N,
+                               tenure_med_sal = mean(tempo_emprego)),
+                             by = .(id_municipio)]
+    
+    privado_alto_sal = rais_s[privado == 1 & salario > 3000 & salario <= 6000,
+                              .(emprego_alto_sal = .N,
+                                tenure_alto_sal = mean(tempo_emprego)),
+                              by = .(id_municipio)]
+    
+    privado_altissimo_sal = rais_s[privado == 1 & salario > 6000,
+                                   .(emprego_altissimo_sal = .N,
+                                     tenure_altissimo_sal = mean(tempo_emprego)),
+                                   by = .(id_municipio)]
+    
+    baixo_cbo = rais_s[privado == 1 & rank_wage_cbo == 4,
+                       .(emprego_baixo_cbo = .N,
+                         salario_baixo_cbo = mean(salario)),
+                       by = .(id_municipio)]
+    med_cbo = rais_s[privado == 1 & rank_wage_cbo == 3,
+                     .(emprego_med_cbo = .N,
+                       salario_med_cbo = mean(salario)),
+                     by = .(id_municipio)]
+    alto_cbo = rais_s[privado == 1 & rank_wage_cbo == 2,
+                      .(emprego_alto_cbo = .N,
+                        salario_alto_cbo = mean(salario)),
+                      by = .(id_municipio)]
     
     
+    altissimo_cbo = rais_s[privado == 1 & rank_wage_cbo == 1,
+                           .(emprego_altissimo_cbo = .N,
+                             salario_altissimo_cbo = mean(salario)),
+                           by = .(id_municipio)]
     
-    # privado_brancos = rais_s[privado == 1 & raca_cor == 2,
-    #                          .(emprego_privado_brancos = sum(empregado),
-    #                            tenure_privado_brancos = mean(tempo_emprego),
-    #                            salario_privado_brancos = mean(valor_remuneracao_media)),
-    #                          by = .(id_municipio)]
-    # 
-    # privado_nao_brancos = rais_s[privado == 1 & !is.na(raca_cor) & !raca_cor %in% c(2,9),
-    #                              .(emprego_privado_nao_brancos = sum(empregado),
-    #                                tenure_privado_nao_brancos = mean(tempo_emprego),
-    #                                salario_privado_nao_brancos = mean(valor_remuneracao_media)),
-    #                              by = .(id_municipio)]
+    idade_baixo = rais_s[privado == 1 & grupo_idade == 1,
+                         .(emprego_baixo_idade = .N,
+                           salario_baixo_idade = mean(salario)),
+                         by = .(id_municipio)]
+    
+    idade_med= rais_s[privado == 1 & grupo_idade == 2,
+                         .(emprego_med_idade = .N,
+                           salario_med_idade = mean(salario)),
+                         by = .(id_municipio)]
+    
+    idade_alto = rais_s[privado == 1 & grupo_idade == 3,
+                         .(emprego_alto_idade = .N,
+                           salario_alto_idade = mean(salario)),
+                         by = .(id_municipio)]
+    
     
     publico = rais_s[publico == 1, 
                      .(emprego_publico = .N,
                        tenure_publico = mean(tempo_emprego),
-                       salario_publico = mean(valor_remuneracao_media)),
+                       salario_publico = mean(salario)),
                      by =.(id_municipio)]
     
     temporario = rais_s[temporario == 1,
                         .(emprego_temporario = .N,
                           tenure_temporario = mean(tempo_emprego),
-                          salario_temporario = mean(valor_remuneracao_media)),
-                        by = .(id_municipio)]
-    
-    temporario_lths = rais_s[temporario == 1 & grau_instrucao_apos_2005 < 7,
-                        .(emprego_temporario_lths = .N,
-                          tenure_temporario_lths = mean(tempo_emprego),
-                          salario_temporario_lths = mean(valor_remuneracao_media)),
-                        by = .(id_municipio)]
-    
-    temporario_hs = rais_s[temporario == 1 & grau_instrucao_apos_2005 >= 7,
-                             .(emprego_temporario_hs = .N,
-                               tenure_temporario_hs = mean(tempo_emprego),
-                               salario_temporario_hs = mean(valor_remuneracao_media)),
-                             by = .(id_municipio)]
-    
-    n_temporario = rais_s[n_temporario == 1,
-                        .(emprego_n_temporario = .N,
-                          tenure_n_temporario = mean(tempo_emprego),
-                          salario_n_temporario = mean(valor_remuneracao_media)),
+                          salario_temporario = mean(salario)),
                         by = .(id_municipio)]
     
     meio_periodo = rais_s[meio_periodo == 1,
                           .(emprego_meio_periodo = .N,
                             tenure_meio_periodo = mean(tempo_emprego),
-                            salario_meio_periodo = mean(valor_remuneracao_media)),
+                            salario_meio_periodo = mean(salario)),
                           by = .(id_municipio)]
     
     
-
-     meio_periodo_lths = rais_s[meio_periodo == 1 & grau_instrucao_apos_2005 < 7,
-                                .(emprego_meio_periodo_lths = .N,
-                                  tenure_meio_periodo_lths = mean(tempo_emprego),
-                                  salario_meio_periodo_lths = mean(valor_remuneracao_media)),
-                                by = .(id_municipio)]
     
-     meio_periodo_hs = rais_s[meio_periodo == 1 & grau_instrucao_apos_2005 >=7,
-                              .(emprego_meio_periodo_hs = .N,
-                                tenure_meio_periodo_hs = mean(tempo_emprego),
-                                salario_meio_periodo_hs = mean(valor_remuneracao_media)),
-                              by = .(id_municipio)]
-    
-     
-     privado_full = rais_s[privado_full == 1,
-                           .(emprego_privado_full = .N,
-                             tenure_privado_full = mean(tempo_emprego),
-                             salario_privado_full = mean(valor_remuneracao_media)),
-                           by = .(id_municipio)]
-
-     
-     rural = rais_s[rural == 1,
-                       .(emprego_rural = .N,
-                         tenure_rural = mean(tempo_emprego),
-                         salario_rural = mean(valor_remuneracao_media)),
-                       by = .(id_municipio)]
+    rural = rais_s[rural == 1,
+                   .(emprego_rural = .N,
+                     tenure_rural = mean(tempo_emprego),
+                     salario_rural = mean(salario)),
+                   by = .(id_municipio)]
     
     
     #Juntar informações
@@ -264,23 +238,56 @@ for(y in years){
     combinado = merge(municipios, privado,
                       by = "id_municipio", all.x = TRUE)
     
+    combinado = merge(combinado, rais_alt,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, homens,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, mulheres,
+                      by = "id_municipio", all.x = TRUE)
+    
     combinado = merge(combinado, privado_lths,
                       by = "id_municipio", all.x = TRUE)
     
-    combinado = merge(combinado, privado_hs,
+    combinado = merge(combinado, privado_hs_somecol,
                       by = "id_municipio", all.x = TRUE)
     
-    # combinado = merge(combinado, privado_baixo_sal,
-    #                   by = "id_municipio", all.x = TRUE)
-    # 
-    # combinado = merge(combinado, privado_alto_sal,
-    #                   by = "id_municipio", all.x = TRUE)
+    combinado = merge(combinado, privado_col,
+                      by = "id_municipio", all.x = TRUE)
     
-    # combinado = merge(combinado, privado_brancos,
-    #                   by = "id_municipio", all.x = TRUE)
-    # 
-    # combinado = merge(combinado, privado_nao_brancos,
-    #                   by = "id_municipio", all.x = TRUE)
+    combinado = merge(combinado, privado_baixo_sal,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, privado_med_sal,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, privado_alto_sal,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, privado_altissimo_sal,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, baixo_cbo,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, med_cbo,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, alto_cbo,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, altissimo_cbo,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, idade_baixo,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, idade_med,
+                      by = "id_municipio", all.x = TRUE)
+    
+    combinado = merge(combinado, idade_alto,
+                      by = "id_municipio", all.x = TRUE)
     
     combinado = merge(combinado, publico,
                       by = "id_municipio", all.x = TRUE)
@@ -288,31 +295,15 @@ for(y in years){
     combinado = merge(combinado, temporario,
                       by = "id_municipio", all.x = TRUE)
     
-    combinado = merge(combinado, temporario_lths,
-                      by = "id_municipio", all.x = TRUE)
-    
-    combinado = merge(combinado, temporario_hs,
-                      by = "id_municipio", all.x = TRUE)
-    
-    combinado = merge(combinado, n_temporario,
-                      by = "id_municipio", all.x = TRUE)
     
     combinado = merge(combinado, meio_periodo,
                       by = "id_municipio", all.x = TRUE)
- 
-    combinado = merge(combinado, meio_periodo_lths,
-                      by = "id_municipio", all.x = TRUE)
-
-    combinado = merge(combinado, meio_periodo_hs,
-                      by = "id_municipio", all.x = TRUE)
     
-    combinado = merge(combinado, privado_full,
-                      by = "id_municipio", all.x = TRUE)
     
     combinado = merge(combinado, rural,
                       by = "id_municipio", all.x = TRUE)
     
-
+    
     combinado[, anosem := as.numeric(paste0(y,s))]
     
     #juntar no rais_agg

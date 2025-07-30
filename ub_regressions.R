@@ -19,8 +19,11 @@ df = read_parquet("../data/ub_rais_merged.parquet")
 source("../uber/ub_funcoes_auxiliares.R")
 
 #parametros:
-dropar_primeiros_munics = 1
-minimo_cidades = 10
+dropar_primeiros_munics = 0
+minimo_cidades = 9
+
+#manter dados até 2019
+# df = df[anosem <= 20192]
 
 #definir controles
 controles = as.formula(" ~  lincome_r  + unem_rate_r  +inf_rate_r +lpea_r")
@@ -29,6 +32,8 @@ sem_controles = as.formula("~ 1")
 #definir pasta
 data = "202507"
 path_save = paste0("../Output/",data,"/")
+
+
 
 ######################################
 #Ajustes
@@ -93,6 +98,7 @@ p2 = ggplot(df_plot, aes(lpea_r, color = tratado, group = tratado))+geom_density
 plot_grid(p2, p1)
 ggsave(paste0(path_save,"distribuicoes_prob_pop.png"), height = 5, width = 9)
 
+
 ######################################
 #Summary Statistics
 ######################################
@@ -129,9 +135,11 @@ datasummary_df(tab,
                fmt = 0)
 
 
+
 ######################################
 #Emprego privado
 ######################################
+source("../uber/ub_funcoes_auxiliares.R")
 set.seed(456)
 m2 = regressao_cs(variavel_dependente = "emprego_privado",
                   dep_em_log= 1, controles_use = controles, 
@@ -139,9 +147,6 @@ m2 = regressao_cs(variavel_dependente = "emprego_privado",
 
 p2 = plot_es(m2, title = " ")
 p2 %>% print()
-
-#save original overall att to use later
-or_att_emp = m2[[2]]$overall.att
 
 ggsave(paste0(path_save,"emprego_noeduc.png"), height = 5, width = 9)
 
@@ -153,74 +158,138 @@ m1 = regressao_cs(variavel_dependente = "emprego_lths",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
-m2 = regressao_cs(variavel_dependente = "emprego_hs",
+m2 = regressao_cs(variavel_dependente = "emprego_hs_somecol",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
-p1 = plot_es(m1, title = 'Less Than HS')
-p2 = plot_es(m2, title = "HS or more")
-plot_grid(p1,p2, nrow = 1)
+m3 = regressao_cs(variavel_dependente = "emprego_col",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Less Than HS')+ylim(-0.15, 0.07)
+p2 = plot_es(m2, title = "HS/ Some Coll.")+ylim(-0.15, 0.07)
+p3 = plot_es(m3, title = "College or More")+ylim(-0.15, 0.07)
+plot_grid(p1,p2, p3, nrow = 1)
 
 #save original overall att for lths to use later
 or_att_emp_lths = m1[[2]]$overall.att
 
 ggsave(paste0(path_save,"emprego_privado_escolaridade.png"), height = 5, width = 9)
 
+
+######################################
+# Emprego privado- Por Salario
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_baixo_sal",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_med_sal",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_alto_sal",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "emprego_altissimo_sal",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Log Emp: (,1500]')+ylim(-0.2, 0.1)
+p2 = plot_es(m2, title = "Log Emp: (1500,3000]")+ylim(-0.2, 0.1)
+p3 = plot_es(m3, title = "Log Emp: [3000, 6000]")+ylim(-0.2, 0.1)
+p4 = plot_es(m4, title = "Log Emp: (6000,)")+ylim(-0.2, 0.1)
+plot_grid(p1,p2, p3, p4, nrow = 2)
+
+ggsave(paste0(path_save,"emprego_privado_nivel_sal.png"), height = 5, width = 9)
+
+######################################
+# Emprego privado- Por Sexo
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_homens",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_mulheres",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+
+p1 = plot_es(m1, title = 'Log Employment - Men')+ylim(-0.15, 0.07)
+p2 = plot_es(m2, title = "Log Employment - Women")+ylim(-0.15, 0.07)
+plot_grid(p1,p2, nrow = 1)
+
+ggsave(paste0(path_save,"emprego_privado_sexo.png"), height = 5, width = 9)
+
+######################################
+# Emprego privado- Por Idade
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_baixo_idade",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_med_idade",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_alto_idade",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+
+p1 = plot_es(m1, title = 'L Emp: (,30]')+ylim(-0.10, 0.05)
+p2 = plot_es(m2, title = "L Emp: (30,45]")+ylim(-0.1, 0.05)
+p3 = plot_es(m3, title = "L Emp: (45,)")+ylim(-0.10, 0.05)
+plot_grid(p1,p2, p3, nrow = 1)
+
+ggsave(paste0(path_save,"emprego_privado_idade.png"), height = 5, width = 9)
+
+
+######################################
+# Emprego privado- Por Rank de Salário CBO
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_baixo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_med_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_alto_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "emprego_altissimo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Log Emp: 1st wage quart.')+ylim(-0.15, 0.05)
+p2 = plot_es(m2, title = "Log Emp: 2nd wage quart.")+ylim(-0.15, 0.05)
+p3 = plot_es(m3, title = "Log Emp: 3rd wage quart.")+ylim(-0.15, 0.05)
+p4 = plot_es(m4, title = "Log Emp: 4th wage quart.")+ylim(-0.15, 0.05)
+plot_grid(p1,p2, p3, p4, nrow = 2)
+
+ggsave(paste0(path_save,"emprego_privado_rank_sal_cbo.png"), height = 5, width = 9)
+
 ######################################
 # Emprego temporário e Meio Período
 ######################################
 set.seed(456)
-m1 = regressao_cs(variavel_dependente = "emprego_temporario",
+m1 = regressao_cs(variavel_dependente = "emprego_meio_periodo",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
-m2 = regressao_cs(variavel_dependente = "emprego_meio_periodo",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
+p1 = plot_es(m1, title = "Log Part-Time Employment")
+print(p1)
 
-p1 = plot_es(m1, title = 'Log Temporary Employment')
-p2 = plot_es(m2, title = "Log Part-Time Employment")
-plot_grid(p1,p2, nrow = 1)
 
 ggsave(paste0(path_save,"empregos_alternativos.png"), height = 5, width = 9)
-
-
-######################################
-# Emprego temporário - por educação
-######################################
-set.seed(456)
-m1 = regressao_cs(variavel_dependente = "emprego_temporario_lths",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-m2 = regressao_cs(variavel_dependente = "emprego_temporario_hs",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-p1 = plot_es(m1, title = 'Less Than High School')
-p2 = plot_es(m2, title = "High School or More")
-plot_grid(p1,p2, nrow = 1)
-
-ggsave(paste0(path_save,"emprego_temporario_educ.png"), height = 5, width = 9)
-
-######################################
-# Emprego Meio Período - Por educação
-  ######################################
-  set.seed(456)
-  m1 = regressao_cs(variavel_dependente = "emprego_meio_periodo_lths",
-                    dep_em_log= 1, controles_use = controles, 
-                    control_group = "notyettreated")
-  m2 = regressao_cs(variavel_dependente = "emprego_meio_periodo_hs",
-                    dep_em_log= 1, controles_use = controles, 
-                    control_group = "notyettreated")
-  
-  
-  p1 = plot_es(m1, title = "Less Than High School")
-  p2 = plot_es(m2, title = 'High School or More')
-  plot_grid(p1,p2, nrow = 1)
-
-
-ggsave(paste0(path_save,"emprego_meio_periodo_educ.png"), height = 5, width = 9)
 
 
 ######################################
@@ -233,7 +302,7 @@ m1 = regressao_cs(variavel_dependente = "salario_privado",
                   control_group = "notyettreated")
 
 
-p1 = plot_es(m1, title = ' ')+theme_minimal()
+p1 = plot_es(m1, title = 'Log Wages')
 p1 %>% print()
 ggsave(paste0(path_save,"wages.png"), height = 4.5, width = 8)
 
@@ -243,20 +312,74 @@ ggsave(paste0(path_save,"wages.png"), height = 4.5, width = 8)
 set.seed(456)
 m1 = regressao_cs(variavel_dependente = "salario_lths",
                   dep_em_log= 1, controles_use = controles, 
+                  # base_period = 'universal',
                   control_group = "notyettreated")
-m2 = regressao_cs(variavel_dependente = "salario_hs",
+m2 = regressao_cs(variavel_dependente = "salario_hs_somecol",
+                  dep_em_log= 1, controles_use = controles, 
+                  # base_period = 'universal',
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "salario_col",
+                  dep_em_log= 1, controles_use = controles, 
+                  # base_period = 'universal',
+                  control_group = "notyettreated")
+
+
+
+p1 = plot_es(m1, title = "Less Than High School")+ylim(-0.08, 0.04)
+p2 = plot_es(m2, title = 'HS/ Some Coll.')+ylim(-0.08, 0.04)
+p3 = plot_es(m3, title = 'College')+ylim(-0.08, 0.04)
+plot_grid(p1,p2, p3, nrow = 1)
+
+ggsave(paste0(path_save,"wages_educ.png"), height = 5, width = 9)
+
+######################################
+# Log Salario- Por Rank de Salário CBO
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "salario_baixo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "salario_med_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "salario_alto_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "salario_altissimo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Log Wage: 1st wage quart.')+ylim(-0.1, 0.05)
+p2 = plot_es(m2, title = "Log Wage: 2nd wage quart.")+ylim(-0.1, 0.05)
+p3 = plot_es(m3, title = "Log Wage: 3rd wage quart.")+ylim(-0.1, 0.05)
+p4 = plot_es(m4, title = "Log Wage: 4th wage quart.")+ylim(-0.1, 0.05)
+plot_grid(p1,p2, p3, p4, nrow = 2)
+
+ggsave(paste0(path_save,"wages_rank_sal_cbo.png"), height = 5, width = 9)
+
+
+######################################
+# Admissoes e demissoes
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "admissao",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "demissao",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
-p1 = plot_es(m1, title = "Less Than High School")
-p2 = plot_es(m2, title = 'High School or More')
+p1 = plot_es(m1, title = 'Log New Hires')+ylim(-0.3, 0.1)
+p2 = plot_es(m2, title = "Log Displacements") + ylim(-0.3, 0.1)
 plot_grid(p1,p2, nrow = 1)
 
-#save original overall att to use later
-or_att_wage_hs = m2[[2]]$overall.att
-
-ggsave(paste0(path_save,"wages_educ.png"), height = 5, width = 9)
+ggsave(paste0(path_save,"adm_dem.png"), height = 5, width = 9)
 
 
 ######################################
@@ -267,26 +390,16 @@ m1 = regressao_cs(variavel_dependente = "emprego_publico",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
-m2 = regressao_cs(variavel_dependente = "emprego_rural",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-m3 = regressao_cs(variavel_dependente = "salario_publico",
-                  dep_em_log= 1, controles_use = controles, 
-                  control_group = "notyettreated")
-
-m4 = regressao_cs(variavel_dependente = "salario_rural",
+m2 = regressao_cs(variavel_dependente = "salario_publico",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
 p1 = plot_es(m1, title = 'Public Employment')
-p2 = plot_es(m2, title = "Rural Employment")
-p3 = plot_es(m3, title = "Public Wages")
-p4 = plot_es(m4, title = "Rural Wages")
-plot_grid(p1,p2, p3, p4, nrow = 2)
+p2 = plot_es(m2, title = "Log Public Wages")
+plot_grid(p1,p2, nrow = 1)
 
-ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 7, width = 9)
+ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 5, width = 9)
 
 
 
@@ -298,18 +411,20 @@ m1 = regressao_cs(variavel_dependente = "emprego_lths",
                   control_group = "notyettreated",
                   base_period = "universal")
 
-m2 = regressao_cs(variavel_dependente = "emprego_hs",
+m2 = regressao_cs(variavel_dependente = "emprego_hs_somecol",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
-p1 = plot_es(m1, title = 'Less Than HS')
-p2 = plot_es(m2, title = "HS or more")
-pg = plot_grid(p1,p2, nrow = 1)
-title = ggdraw() + 
-  draw_label("Log Formal Private Employment", 
-             fontface='bold')
-plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
+m3 = regressao_cs(variavel_dependente = "emprego_col",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated",
+                  base_period = "universal")
+
+p1 = plot_es(m1, title = 'Less Than HS')+ylim(-0.15, 0.07)
+p2 = plot_es(m2, title = "HS/ Some Coll.")+ylim(-0.15, 0.07)
+p3 = plot_es(m3, title = "College")+ylim(-0.15, 0.07)
+plot_grid(p1,p2,p3, nrow = 1)
 
 ggsave(paste0(path_save,"emprego_privado_escolaridade_universal.png"), height = 5, width = 9)
 
@@ -321,42 +436,108 @@ m1 = regressao_cs(variavel_dependente = "salario_lths",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
-m2 = regressao_cs(variavel_dependente = "salario_hs",
+m2 = regressao_cs(variavel_dependente = "salario_hs_somecol",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated",
+                  base_period = "universal")
+m3 = regressao_cs(variavel_dependente = "salario_col",
                   dep_em_log= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
 
-p1 = plot_es(m1, title = "LTHS")
-p2 = plot_es(m2, title = 'HS or More')
-pg = plot_grid(p1,p2, nrow = 1)
-title = ggdraw() + draw_label("Log Wages", 
-                              fontface='bold')
-plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
+p1 = plot_es(m1, title = "LTHS")+ylim(-0.08, 0.04)
+p2 = plot_es(m2, title = 'HS/ Some Coll.')+ylim(-0.08, 0.04)
+p3 = plot_es(m3, title = 'College')+ylim(-0.08, 0.04)
+plot_grid(p1,p2, p3, nrow = 1)
 
 ggsave(paste0(path_save,"wages_educ_universal.png"), height = 9, width = 9)
 
 
+######################################
+# Emprego privado- Por Rank de Salário CBO - base universal
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_baixo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
 
+m2 = regressao_cs(variavel_dependente = "emprego_med_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_alto_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "emprego_altissimo_cbo",
+                  dep_em_log= 1, controles_use = controles, 
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Log Emp: 1st wage quart.')+ylim(-0.15, 0.08)
+p2 = plot_es(m2, title = "Log Emp: 2nd wage quart.")+ylim(-0.15, 0.08)
+p3 = plot_es(m3, title = "Log Emp: 3rd wage quart.")+ylim(-0.15, 0.08)
+p4 = plot_es(m4, title = "Log Emp: 4th wage quart.")+ylim(-0.15, 0.08)
+plot_grid(p1,p2, p3, p4, nrow = 2)
+
+ggsave(paste0(path_save,"emprego_privado_rank_sal_cbo_universal.png"), 
+       height = 5, width = 9)
+
+
+######################################
+# Emprego privado- Por Salario - Base Universal
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_baixo_sal",
+                  dep_em_log= 1, controles_use = controles,  
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_med_sal",
+                  dep_em_log= 1, controles_use = controles,  
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_alto_sal",
+                  dep_em_log= 1, controles_use = controles,  
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+m4 = regressao_cs(variavel_dependente = "emprego_altissimo_sal",
+                  dep_em_log= 1, controles_use = controles,  
+                  base_period = 'universal', 
+                  control_group = "notyettreated")
+
+p1 = plot_es(m1, title = 'Log Emp: (,1500]')+ylim(-0.2, 0.1)
+p2 = plot_es(m2, title = "Log Emp: (1500,3000]")+ylim(-0.2, 0.1)
+p3 = plot_es(m3, title = "Log Emp: [3000, 6000]")+ylim(-0.2, 0.1)
+p4 = plot_es(m4, title = "Log Emp: (6000,)")+ylim(-0.2, 0.1)
+plot_grid(p1,p2, p3, p4, nrow = 2)
+
+ggsave(paste0(path_save,"emprego_privado_nivel_sal_universal.png"), height = 5, width = 9)
 
 
 ######################################
 # Homicidios e Acidentes de transito
 ######################################
-m1 = regressao_cs(variavel_dependente = "homicidios_pc",
-                  controles_use = controles, 
-                  control_group = "notyettreated")
-
-m2 = regressao_cs(variavel_dependente = "mortes_acidente_carro_pc",
-                  controles_use = controles, dep_em_log =1,
-                  control_group = "notyettreated")
-p1 = plot_es(m1, title = 'Homicidios/100k Hab')
-p2 = plot_es(m2, title = "Mortes Acidente de Carros/ 100k Hab")
-pg = plot_grid(p1,p2, nrow = 1)
-title = ggdraw() + draw_label("Mortes - SIM-SUS", fontface='bold')
-plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
-
-ggsave(paste0(path_save,"homicidios_acidentes.png"), height = 4.5, width = 8)
+# m1 = regressao_cs(variavel_dependente = "homicidios_pc",
+#                   controles_use = controles, 
+#                   control_group = "notyettreated")
+# 
+# m2 = regressao_cs(variavel_dependente = "mortes_acidente_carro_pc",
+#                   controles_use = controles, dep_em_log =1,
+#                   control_group = "notyettreated")
+# p1 = plot_es(m1, title = 'Homicidios/100k Hab')
+# p2 = plot_es(m2, title = "Mortes Acidente de Carros/ 100k Hab")
+# pg = plot_grid(p1,p2, nrow = 1)
+# title = ggdraw() + draw_label("Mortes - SIM-SUS", fontface='bold')
+# plot_grid(title, pg, ncol=1, rel_heights=c(0.1, 1))
+# 
+# ggsave(paste0(path_save,"homicidios_acidentes.png"), height = 4.5, width = 8)
 
 
 
