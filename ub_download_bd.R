@@ -20,6 +20,23 @@ funcao_para_tentar = function(query, arquivo, ano){
   write_parquet(read_sql(query),arquivo)
   print(paste0(ano))
 }
+
+
+#############################
+#Nascidos Vivos - SINASC
+#############################
+
+query <- "SELECT ano,
+EXTRACT(MONTH FROM data_nascimento) AS mes,
+id_municipio_nascimento,
+COUNT(sequencial_nascimento) AS total_nascimentos
+FROM `basedosdados.br_ms_sinasc.microdados` 
+WHERE ano > 2009 AND ano < 2022
+GROUP BY id_municipio_nascimento, ano, mes
+ORDER BY ano, mes, id_municipio_nascimento"
+
+write_parquet(read_sql(query),"../data/nascimentos.parquet")
+
 #############################
 #RAIS
 #############################
@@ -187,9 +204,9 @@ beep()
 #Frota de Veículos
 #############################
 
-query <- "SELECT sigla_uf,id_municipio, ano, mes,automovel, total
+query <- "SELECT id_municipio, ano, mes, quantidade
 FROM `basedosdados.br_denatran_frota.municipio_tipo` 
-WHERE ano IN (2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020)
+WHERE ano > 2009 AND ano < 2022 AND tipo_veiculo = 'automovel'  
 "
 write_parquet(read_sql(query),"FROTA.parquet")
 gc()

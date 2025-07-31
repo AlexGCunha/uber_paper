@@ -23,7 +23,7 @@ dropar_primeiros_munics = 0
 minimo_cidades = 9
 
 #manter dados até 2019
-# df = df[anosem <= 20192]
+df = df[anosem <= 20192]
 
 #definir controles
 controles = as.formula(" ~  lincome_r  + unem_rate_r  +inf_rate_r +lpea_r")
@@ -402,6 +402,21 @@ plot_grid(p1,p2, nrow = 1)
 ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 5, width = 9)
 
 
+######################################
+# Frota de veículos
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "n_veics",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+
+plot_es(m1, title = 'Log Cars') %>% print()
+
+
+ggsave(paste0(path_save,"frota_veics.png"), height = 5, width = 9)
+
+
 
 ######################################
 # Emprego privado- Por Educação - BASE UNIVERSAL
@@ -539,6 +554,21 @@ ggsave(paste0(path_save,"emprego_privado_nivel_sal_universal.png"), height = 5, 
 # 
 # ggsave(paste0(path_save,"homicidios_acidentes.png"), height = 4.5, width = 8)
 
+
+######################################
+# Teste
+######################################
+set.seed(456)
+df = df %>% 
+  arrange(rgi, anosem) %>% data.table()
+df[, dif_veic := n_veics - lag(n_veics), by = 'rgi']
+
+m1 = regressao_cs(variavel_dependente = "n_veics",
+                  dep_em_log= 1, 
+                  # base_period = 'universal',
+                  controles_use = controles, 
+                  control_group = "notyettreated")
+plot_es(m1, title = 'Teste') %>% print()
 
 
 

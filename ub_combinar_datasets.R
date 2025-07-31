@@ -160,6 +160,117 @@ rais[, `:=`(lincome_r = log(mean_income_r),
 
 
 ###################
+#Frota de veículos
+###################
+frota = read_parquet("../data/FROTA.parquet")
+setDT(frota)
+frota = frota[mes == 6 | mes == 12]
+frota[, `:=`(id_municipio = as.integer(id_municipio),
+             semestre = fifelse(mes == 6, 1, 2))]
+frota[, anosem := as.integer(paste0(ano,semestre))]
+
+#adicionar dados de regiao
+frota = merge(frota, micro, by = 'id_municipio', all.x = TRUE)
+frota = frota[!is.na(rgi)]
+
+#agregar por regiao e adicionar no df principal
+frota = frota[, .(n_veics = sum(quantidade)), by = .(rgi, anosem)]
+rais = merge(rais, frota, by = c("rgi", "anosem"), all.x = TRUE)
+
+
+###################
+#Nascimentos
+###################
+nascimentos = read_parquet("../data/nascimentos.parquet") %>% data.table()
+nascimentos[, `:=`(id_municipio = as.integer(id_municipio_nascimento),
+                   anosem = fcase(mes <= 6, paste0(ano,1),
+                                  mes >6 & mes <= 12, paste0(ano,2),
+                                  default = NA))]
+#adicionar dados de regiao
+nascimentos = merge(nascimentos, micro, by = 'id_municipio', all.x = TRUE)
+nascimentos = nascimentos[!is.na(rgi)]
+
+#agregar por regiao e adicionar no df principal
+nascimentos = nascimentos[, .(nascimentos = sum(total_nascimentos)),
+                          by = .(rgi, anosem)]
+nascimentos[, anosem := as.integer(anosem)]
+
+rais = merge(rais, nascimentos, by = c("rgi", "anosem"), all.x = TRUE)
+
+
+#########################################
+#Tax collection
+#########################################
+ir = read_excel('../Data/arrecadacao_ir.xlsx', skip = 6) %>% data.table()
+colnames(ir) = c('ano', 'uf', 'nome_municipio', 'irpf', 'qtdpf', 'irpj', 'qtdpj'
+                 ,'irtotal', 'qtdtotal' )
+
+#transformar colunas de valores em inteiros
+cols_change = c('irpf', 'irpj', 'irtotal', 'qtdpf', 'qtdpj', 'qtdtotal')
+ir[, (cols_change) := lapply(.SD, function(x) x = as.numeric(x)), .SDcols = cols_change]
+ir = ir[!is.na(nome_municipio) & ano > "2010"]
+
+#adicionar info de estado à micro
+micro[, uf := as.integer(substr(id_municipio, 1, 2))]
+micro[, nome_uf := fcase(uf == 11, 'RO', 
+                         uf == 12, 'AC',
+                         uf == 13, 'AM',
+                         uf == 14, 'RR',
+                         uf == 15, 'PA',
+                         uf == 16, 'AP',
+                         uf == 17, 'TO',
+                         uf == 21, 'MA',
+                         uf == 22, 'PI', 
+                         uf == 23, 'CE',
+                         uf == 24, 'RN',
+                         uf == 25, 'PB',
+                         uf == 26, 'PE',
+                         uf == 27, 'AL',
+                         uf == 28, 'SE',
+                         uf == 29, 'BA',
+                         uf == 31, 'MG',
+                         uf == 32, 'ES',
+                         uf == 33, 'RJ',
+                         uf == 35, 'SP',
+                         uf == 41, 'PR',
+                         uf == 42, 'SC',
+                         uf == 43, 'RS',
+                         uf == 50, 'MS',
+                         uf == 51, 'MT',
+                         uf == 52, 'GO',
+                         uf == 53, 'DF', 
+                         default = NA
+                         )]
+micro[, uf := NULL]
+
+#Adicionar info do nome do municipio no formato "Nome_municipio - CodUF"
+micro[, nome_municipio := paste0(nome_mun, " - ", nome_uf)]
+
+
+#Limpar nome do municipio nas duas bases
+library(stringi)
+micro[, nome_municipio := stri_trans_general(str = nome_municipio, 
+                                             id = 'Latin - ASCII')]
+ir[, nome_municipio := stri_trans_general(str = nome_municipio, 
+                                          id = 'Latin - ASCII')]
+
+#adicionar dados de microrregiao e agregar
+ir = merge(ir, micro, by = 'nome_municipio', all.x = TRUE)
+
+ir = ir[, .(irpf = sum(irpf, na.rm = TRUE), 
+            irpj = sum(irpj, na.rm = TRUE),
+            irtotal = sum(irtotal, na.rm = TRUE),
+            qtdpf = sum(qtdpf, na.rm = TRUE),
+            qtdpj = sum(qtdpj, na.rm = TRUE),
+            qtdtotal =sum(qtdtotal, na.rm = TRUE)),
+        by = .(rgi, ano)]
+
+ir[, ano := as.integer(ano)]
+
+#merge to main database
+rais = merge(rais, ir, by = c('rgi', 'ano'), all.x = TRUE)
+
+###################
 #SIS-SUS - Mortalidade do DataSUS
 #DEMORA PARA RODAR E EU NÃO ACHEI NENHUM EFEITO, ENTÃO VOU DEIXAR COMENTADO
 ###################
