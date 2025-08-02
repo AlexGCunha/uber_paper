@@ -61,7 +61,8 @@ rais = rais[, .(ano = first(ano),
                 salario_med_idade = weighted.mean(salario_med_idade, emprego_med_idade, na.rm = TRUE),
                 salario_alto_idade = weighted.mean(salario_alto_idade, emprego_alto_idade, na.rm = TRUE),
                 salario_publico = weighted.mean(salario_publico, emprego_publico, na.rm = TRUE),
-                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE)
+                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE),
+                tenure_privado = weighted.mean(tenure_privado, emprego_privado, na.rm = TRUE)
                
 ),
 by = .(rgi, anosem)]

@@ -110,14 +110,14 @@ df_sum[,`:=`(unem_rate_r = unem_rate_r * 100,
              hs_rate_r = hs_rate_r * 100)]
 df_sum[, N := .N, by =.(tratado)]
 
-setnames(df_sum, old = c('pop_14'  , 'mean_income_r' , 'unem_rate_r'
+setnames(df_sum, old = c('pea_r'  , 'mean_income_r' , 'unem_rate_r'
                          , 'inf_rate_r'  , 'lths_rate_r' , 'hs_rate_r'
                          , 'emprego_privado', 'salario_privado' , 'tratado'),
-         new = c('Population'  , 'Mean Income' , 'Unemployment Rate'
+         new = c('Labor Force'  , 'Mean Income' , 'Unemployment Rate'
                  , 'Informality Rate'  , 'Share Less than High School' , 'Share High School'
                  , 'Private Employment', 'Private Wages' , 'tem_uber'))
 
-datasummary_balance(`Population`  + `Mean Income` + `Unemployment Rate`
+datasummary_balance(`Labor Force`  + `Mean Income` + `Unemployment Rate`
                     + `Informality Rate`  + `Share Less than High School`  + `Share High School` + `Private Employment` 
                     + `Private Wages` + `N`~ tem_uber,
                     data = df_sum,
@@ -563,7 +563,7 @@ df = df %>%
   arrange(rgi, anosem) %>% data.table()
 df[, dif_veic := n_veics - lag(n_veics), by = 'rgi']
 
-m1 = regressao_cs(variavel_dependente = "n_veics",
+m1 = regressao_cs(variavel_dependente = "tenure_privado",
                   dep_em_log= 1, 
                   # base_period = 'universal',
                   controles_use = controles, 
@@ -571,6 +571,47 @@ m1 = regressao_cs(variavel_dependente = "n_veics",
 plot_es(m1, title = 'Teste') %>% print()
 
 
+######################################
+# verificar share de regioes para as quais eu tenho a
+# data de entrada da maior cidade
+######################################
+#dados de microrregiao
+micro = read_excel("../Data/regioes_geograficas.xlsx") %>% 
+  select(2,3) %>% setDT()
+colnames(micro) = c('id_municipio', 'rgi')
+micro[, `:=`(id_municipio = as.integer(substr(id_municipio, 1, 6)),
+             rgi = as.integer(rgi))]
+
+#dados de populacao por municipio
+pop_mun = read_parquet("../data/munic_data_10.parquet") %>% 
+  select(munic, pop_m) %>% rename(id_municipio = munic) %>% data.table()
+pop_mun[, id_municipio := as.integer(id_municipio)]
+
+#entry dates
+entry = read_excel("../data/initial_dates.xlsx", sheet = "032023") %>% 
+  select(munic, problem, ever_treated) %>% data.table()
+colnames(entry) = c('id_municipio', 'tenho_datas', 'tem_uber')
+entry[, tenho_datas := fifelse(!is.na(tenho_datas), 1, 0)]
+entry[, id_municipio := as.integer(substr(id_municipio, 1, 6))]
+
+#adicionar pop e microrregiao no dataset de datas uber
+entry = merge(entry, pop_mun, by = 'id_municipio', all.x = TRUE)
+
+#adicionar info de regiao
+entry = merge(entry, micro, by = 'id_municipio', all.x = TRUE)
+
+#dropar unica cidade que n tem populacao no censo 2010 (balneario rincao, cidade pequena)
+entry = entry[!is.na(pop_m)]
 
 
+#definir maior cidade por regiao
+entry[, maior_cidade := fifelse(pop_m == max(pop_m), 1, 0), by = 'rgi']
 
+#definir se eu tenho datas de alguma cidade da regiao
+entry[, tenho_alguma_data := max(tenho_datas), by = 'rgi']
+
+#filtrar maiores cidades em regiões que tem uber e que eu tenha a data de pelo menos
+# uma cidade
+entry = entry[tenho_alguma_data == 1 & maior_cidade == 1]
+
+count(entry, tenho_datas)
