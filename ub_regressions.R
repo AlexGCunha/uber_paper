@@ -147,6 +147,7 @@ m2 = regressao_cs(variavel_dependente = "emprego_privado",
 
 p2 = plot_es(m2, title = " ")
 p2 %>% print()
+or_att_emp = m2[[2]]$overall.att
 
 ggsave(paste0(path_save,"emprego_noeduc.png"), height = 5, width = 9)
 
@@ -276,6 +277,51 @@ p4 = plot_es(m4, title = "Log Emp: 4th wage quart.")+ylim(-0.15, 0.05)
 plot_grid(p1,p2, p3, p4, nrow = 2)
 
 ggsave(paste0(path_save,"emprego_privado_rank_sal_cbo.png"), height = 5, width = 9)
+
+
+######################################
+# Emprego privado- Por investimento em RD (OCDE)
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_hintensity",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_lintensity",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+
+p2 = plot_es(m1, title = 'Log Emp: High Research Sectors')+ylim(-0.20, 0.1)
+p1 = plot_es(m2, title = "Log Emp: Low Research Sectors.")+ylim(-0.20, 0.1)
+plot_grid(p1,p2)
+
+ggsave(paste0(path_save,"emprego_inv_pesquisa.png"), height = 5, width = 9)
+
+
+######################################
+# Emprego privado- Por quantil de share com college
+######################################
+set.seed(456)
+m1 = regressao_cs(variavel_dependente = "emprego_lcol",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m2 = regressao_cs(variavel_dependente = "emprego_mcol",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+m3 = regressao_cs(variavel_dependente = "emprego_hcol",
+                  dep_em_log= 1, controles_use = controles, 
+                  control_group = "notyettreated")
+
+
+p1 = plot_es(m1, title = 'Log Emp: Low College Sect.')+ylim(-0.15, 0.1)
+p2 = plot_es(m2, title = "Log Emp: Mid College Sect.")+ylim(-0.15, 0.1)
+p3 = plot_es(m3, title = "Log Emp: High College Sect.")+ylim(-0.15, 0.1)
+plot_grid(p1,p2, p3, nrow = 1)
+
+ggsave(paste0(path_save,"emprego_share_col.png"), height = 5, width = 9)
 
 ######################################
 # Emprego temporário e Meio Período
@@ -615,3 +661,90 @@ entry[, tenho_alguma_data := max(tenho_datas), by = 'rgi']
 entry = entry[tenho_alguma_data == 1 & maior_cidade == 1]
 
 count(entry, tenho_datas)
+
+
+
+######################################
+#Tentativa com Leave-One-Out
+######################################
+set.seed(456)
+grupos = df %>% 
+  filter(!is.na(semestre_entrada)) %>% 
+  arrange(semestre_entrada) %>% 
+  select(semestre_entrada) %>% unique() %>% pull()
+
+df_back = copy(df)
+tabela_resultados = data.table()
+
+for(grupo in grupos){
+  df = df_back[!semestre_entrada %in% grupo]
+  m1 = regressao_cs(variavel_dependente = "emprego_privado",
+                    dep_em_log= 1, controles_use = controles, 
+                    control_group = "notyettreated")
+  
+  # m2 = regressao_cs(variavel_dependente = "emprego_lths",
+  #                   dep_em_log= 1, controles_use = controles, 
+  #                   control_group = "notyettreated")
+  # 
+  # m3 = regressao_cs(variavel_dependente = "salario_hs",
+  #                   dep_em_log= 1, controles_use = controles, 
+  #                   control_group = "notyettreated")
+  semestre = as.character(grupo)
+  #pegar dados do primeiro modelo
+  att1 = m1[[2]]$overall.att
+  inf1 = (-1.96*m1[[2]]$overall.se)+att1
+  sup1 = (1.96*m1[[2]]$overall.se)+att1
+  
+  # #pegar dados do segundo modelo
+  # att2 = m2[[2]]$overall.att
+  # inf2 = (-1.96*m2[[2]]$overall.se)+att2
+  # sup2 = (1.96*m2[[2]]$overall.se)+att2
+  # 
+  # #pegar dados do terceiro modelo
+  # att3 = m3[[2]]$overall.att
+  # inf3 = (-1.96*m3[[2]]$overall.se)+att3
+  # sup3 = (1.96*m3[[2]]$overall.se)+att3
+  
+  new_line = data.table(semestre, att1, inf1, sup1
+                        # ,att2, inf2, sup2 
+                        # ,att3, inf3, sup3
+                        )
+  tabela_resultados = rbind(tabela_resultados, new_line)
+  df = copy(df_back)
+}
+
+aux_theme = theme_classic() +
+  theme(plot.title = element_text(color="darkgray", face="bold", size=9),
+        axis.title = element_text(color="darkgray", face="bold", size=9),
+        strip.background = element_rect(fill = 'white', color = 'white'),
+        strip.text = element_text(color = 'darkgray', face = 'bold', size = 9, hjust = 0),
+        legend.position = 'bottom',
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+p1 = ggplot(tabela_resultados, aes(x = semestre, y = att1))+
+  geom_point()+
+  geom_errorbar(aes(ymin = inf1, ymax = sup1), width = 0.1)+
+  labs(x = ' ', y = 'Overall ATT', title = "Formal Emp.")+
+  geom_hline(aes(yintercept =0))+
+  geom_hline(aes(yintercept = or_att_emp), linetype = "dotted")+aux_theme
+print(p1)
+
+# p2 = ggplot(tabela_resultados, aes(x = semestre, y = att2))+
+#   geom_point()+
+#   geom_errorbar(aes(ymin = inf2, ymax = sup2), width = 0.1)+
+#   labs(x = ' ', y = ' ', title = "Formal Emp. - LTHS")+
+#   geom_hline(aes(yintercept =0))+
+#   geom_hline(aes(yintercept = or_att_emp_lths), linetype = "dotted")+aux_theme
+# 
+# p3 = ggplot(tabela_resultados, aes(x = semestre, y = att3))+
+#   geom_point()+
+#   geom_errorbar(aes(ymin = inf3, ymax = sup3), width = 0.1)+
+#   labs(x = ' ', y = ' ', title = "Wages - HS or More")+
+#   geom_hline(aes(yintercept =0))+
+#   geom_hline(aes(yintercept = or_att_wage_hs), linetype = "dotted")+aux_theme
+
+# plot_grid(p1, p2, p3, nrow = 1)
+ggsave(paste0(path_save,"leave_one_out.png"), height = 5, width = 9)
+
+

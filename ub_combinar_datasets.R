@@ -11,8 +11,7 @@ library(readxl)
 #RAIS
 ###################
 rais = read_parquet("../data/ub_painel_emprego_basico.parquet") %>% data.table()
-rais[, id_municipio := as.integer(id_municipio)]
-rais = rais[!is.na(id_municipio)]
+rais = rais[!is.na(rgi)]
 
 #adicionar dados de mmc
 micro = read_excel('../data/regioes_geograficas.xlsx') %>% data.table()
@@ -20,52 +19,6 @@ micro = micro[, .(CD_GEOCODI, cod_rgi, nome_mun)]
 colnames(micro) = c("id_municipio", 'rgi', 'nome_mun')
 micro[, `:=`(id_municipio = as.integer(id_municipio),
              rgi = as.integer(rgi))]
-rais = merge(rais, micro, by = 'id_municipio', all.x = TRUE)
-
-#Agregar dados ao nível da regiao
-rais = rais[, .(ano = first(ano), 
-                emprego_privado = sum(emprego_privado),
-                admissao =  sum(admitido), 
-                demissao = sum(demitido),
-                emprego_homens = sum(emprego_homens),
-                emprego_mulheres = sum(emprego_mulheres),
-                emprego_lths = sum(emprego_lths),
-                emprego_hs_somecol = sum(emprego_hs_somecol),
-                emprego_col = sum(emprego_col),
-                emprego_baixo_sal = sum(emprego_baixo_sal),
-                emprego_med_sal = sum(emprego_med_sal),
-                emprego_alto_sal = sum(emprego_alto_sal),
-                emprego_altissimo_sal = sum(emprego_altissimo_sal),
-                emprego_baixo_cbo = sum(emprego_baixo_cbo),
-                emprego_med_cbo = sum(emprego_med_cbo),
-                emprego_alto_cbo = sum(emprego_alto_cbo),
-                emprego_altissimo_cbo = sum(emprego_altissimo_cbo),
-                emprego_baixo_idade = sum(emprego_baixo_idade),
-                emprego_med_idade = sum(emprego_med_idade),
-                emprego_alto_idade = sum(emprego_alto_idade),
-                emprego_meio_periodo = sum(emprego_meio_periodo),
-                emprego_temporario = sum(emprego_temporario),
-                emprego_publico = sum(emprego_publico),
-                emprego_rural = sum(emprego_rural),
-                salario_privado = weighted.mean(salario_privado, emprego_privado, na.rm = TRUE),
-                salario_homens = weighted.mean(salario_homens, emprego_homens, na.rm = TRUE),
-                salario_mulheres = weighted.mean(salario_mulheres, emprego_mulheres, na.rm = TRUE),
-                salario_lths = weighted.mean(salario_lths, emprego_lths, na.rm = TRUE),
-                salario_hs_somecol = weighted.mean(salario_hs_somecol, emprego_hs_somecol, na.rm = TRUE),
-                salario_col = weighted.mean(salario_col, emprego_col, na.rm = TRUE),
-                salario_baixo_cbo= weighted.mean(salario_baixo_cbo, emprego_baixo_cbo, na.rm = TRUE),
-                salario_med_cbo = weighted.mean(salario_med_cbo, emprego_med_cbo, na.rm = TRUE),
-                salario_alto_cbo = weighted.mean(salario_alto_cbo, emprego_alto_cbo, na.rm = TRUE),
-                salario_altissimo_cbo = weighted.mean(salario_altissimo_cbo, emprego_altissimo_cbo, na.rm = TRUE),
-                salario_baixo_idade = weighted.mean(salario_baixo_idade, emprego_baixo_idade, na.rm = TRUE),
-                salario_med_idade = weighted.mean(salario_med_idade, emprego_med_idade, na.rm = TRUE),
-                salario_alto_idade = weighted.mean(salario_alto_idade, emprego_alto_idade, na.rm = TRUE),
-                salario_publico = weighted.mean(salario_publico, emprego_publico, na.rm = TRUE),
-                salario_rural = weighted.mean(salario_rural, emprego_rural, na.rm = TRUE),
-                tenure_privado = weighted.mean(tenure_privado, emprego_privado, na.rm = TRUE)
-               
-),
-by = .(rgi, anosem)]
 
 
 ###################

@@ -1,7 +1,8 @@
 ########################################
 #This code will:
-#- Create some variables at the municipality level based on 2010 census
-#- calculate mean wages by occupation and residual wages by occupation
+#- Create some variables at the region level based on 2010 census
+#- calculate mean wages by occupation
+#- calculate share of college workers by sector
 ########################################
 
 library(tidyverse)
@@ -54,6 +55,33 @@ df = df %>%
   mutate(wage_total = inc_main_job+value_other_income) 
 gc()
 
+##############################
+#Estimate share of high skill workers by sector
+##############################
+alt = data.table(df)
+#filter employed
+alt = alt[employed == 1]
+
+#define 2-digit cnae
+alt[, cnae := fcase(nchar(sector) == 5, substr(sector,1,2),
+                    nchar(sector) == 4, paste0(0, substr(sector,1,1)),
+                    default = NA)]
+
+#correct only sector in which 2010 census does not correspond to 2.0 cnae
+alt[, cnae := fcase(cnae == "48", "46",
+                    default = cnae)]
+
+#count workers with college degree by sector
+alt = alt[, .(share_col = sum(college_more)/sum(employed)), by = 'cnae']
+alt = alt[!is.na(cnae)]
+
+#define sectors in bottom, mid and top share of workers with a college degree
+quants = quantile(alt$share_col, c(0.33, 0.66))
+alt[, cat_college := fcase(share_col <= quants[1], 1,
+                           share_col > quants[1] & share_col <= quants[2], 2,
+                           default = 3)]
+write_parquet(alt, '../data/share_college_cnae.parquet')
+rm(alt, quants)
 
 ##############################
 #Calculate mean wages by occupation

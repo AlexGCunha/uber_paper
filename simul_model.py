@@ -1,5 +1,22 @@
 import numpy as np
 import pandas as pd
+import math
+
+def prob_uber(wf, mid_wage):
+    """
+    Calculates the probability of being able to work for uber
+
+    Args:
+        wf (float): Wage from a good job.
+        mid_wage (float): Wage at which workers have a 50% chance of being able to work for Uber.
+
+    Returns:
+        float: Probability of finding a job while driving for Uber.
+    """
+    prob = 1/(1+math.exp(-(wf-mid_wage)/1000))
+    return(prob)
+
+
 
 def solve_model(params, max_iter=10000, tol=1e-2):
     """
@@ -15,99 +32,219 @@ def solve_model(params, max_iter=10000, tol=1e-2):
     """
     # Unpack parameters from the dictionary
     wg = params['w_g']
-    wfg = params['w_f_g']
-    wfb = params['w_f_b']
+    wf = params['w_f']
     beta = params['beta']
-    s = params['s']
-    p = params['p']
-    pg = params['p_g']
-    alpha = params['alpha']
+    c = params['prob_out']
+    disp = params['prob_disp']
+    phi_g = params['phi_uber']
+    phi_u = params['phi_unemployed']
+    mid_wage = params['wage_mid'] 
 
     # Initialize guess for the value functions
-    Vf_g, Vf_b, V_U, V_G = 0.0, 0.0, 0.0, 0.0
+    V_f, V_U, V_G = 0.0, 0.0, 0.0
 
     for i in range(max_iter):
         # Store the old values to check for convergence
-        Vf_g_old, Vf_b_old, V_U_old, V_G_old = Vf_g, Vf_b, V_U, V_G
+        V_f_old, V_U_old, V_G_old = V_f, V_U, V_G
 
         # --- Update the value functions based on equations ---
 
         # Value of a Good Job
-        Vf_g = wfg + beta * ((1 - s) * np.max([Vf_g_old, V_U_old, V_G_old]) + s * np.max([V_U_old, V_G_old]))
-
-        # Value of a Bad Job
-        Vf_b = wfb + wg + beta * ((1 - s) * np.max([Vf_b_old, V_U_old, V_G_old]) + s * np.max([V_U_old, V_G_old]))
+        future_value_f = ((1-disp) * V_f_old + 
+                          disp * (prob_uber(wf, mid_wage) * max(V_G_old, V_U_old) +
+                                   (1-prob_uber(wf, mid_wage)) * V_U_old))
+        V_f = wf + beta * (1-c) * future_value_f
 
         # Value of Unemployment.
-        future_val_U = (p * alpha * np.max([Vf_g_old, V_U_old, V_G_old]) +
-                        p * (1 - alpha) * np.max([Vf_b_old, V_U_old, V_G_old]) +
-                        (1 - p) * np.max([V_U_old, V_G_old]))
-        V_U = beta * future_val_U
+        V_U = 0 + beta * (1-c) * (phi_u * max(V_f_old, V_U_old) + (1-phi_u) * V_U_old)
 
         # Value of Uber
-        future_val_G = (pg * alpha * np.max([Vf_g_old, V_U_old, V_G_old]) +
-                        pg * (1 - alpha) * np.max([Vf_b_old, V_U_old, V_G_old]) +
-                        (1 - pg) * np.max([V_U_old, V_G_old]))
-        V_G = wg + beta * future_val_G
+        V_G = wg + beta * (1-c) * (phi_g * max(V_f_old, V_G_old) + (1-phi_g) * V_G_old)
         
         # --- Check for convergence ---
-        error = np.max([abs(Vf_g - Vf_g_old), abs(Vf_b - Vf_b_old),
-                        abs(V_U - V_U_old), abs(V_G - V_G_old)])
+        error = np.max([abs(V_f - V_f_old), abs(V_U - V_U_old), abs(V_G - V_G_old)])
 
         if error < tol:
             # print(f"Converged after {i+1} iterations.")
-            return {'Vf_g': Vf_g, 'Vf_b': Vf_b, 'V_U': V_U, 'V_G': V_G, 'p' : p, 'wfg': wfg, 'w_g': wg}
+            return {'V_f': V_f, 'V_U': V_U, 'V_G': V_G, 'c' : c, 'wf': wf, 'wg': wg}
 
     print("Warning: Model did not converge within the maximum number of iterations.")
-    return {'Vf_g': Vf_g, 'Vf_b': Vf_b, 'V_U': V_U, 'V_G': V_G, 'p' : p, 'wfg': wfg, 'w_g': wg}
+    return {'V_f': V_f, 'V_U': V_U, 'V_G': V_G, 'c' : c, 'wf': wf, 'wg': wg}
+
+
 
 # Applying the code to solve the model with a set of parameters.
 # Define parameters that we will change to test the model
-wage_good = np.arange(2000, 10001, 100)  # Good job wage range
-wage_uber = [0,1500, 2001, 2500] # Uber wage
+wage_formal = np.arange(1000, 10001, 100)  # Good job wage range
 
 # Iterate over the parameters to solve the model for each combination
 results = []
-for wfg in wage_good:
-    for wg in wage_uber:
-        params = {
-            'w_g': wg,     # Uber monthly income
-            'w_f_g': wfg,    # Good job monthly wage
-            'w_f_b': 1200,   # Bad job monthly wage
+for wage in wage_formal:
+    params = {
+            'w_g': 3500,     # Uber monthly income
+            'w_f': wage,    # Good job monthly wage
             'beta': 0.99,    # Discount factor
-            's': 0.06,       # Probability of being laid off a formal job
-            'p': 0.2,       # Probability of finding a job when unemployed
-            'p_g': 0.1,      # Probability of finding a job when driving for Uber
-            'alpha': 0.4     # Probability that a job offer is a "Good Job"
+            'prob_out': 0, #1/((65-20)*12),  # Probability of retirement
+            'prob_disp': 0.01, # Probability of being laid off a formal job
+            'phi_uber': 0.1,  # Probability of finding a job when driving for Uber
+            'phi_unemployed': 0.2,  # Probability of finding a job when unemployed
+            'wage_mid': 5000  # Mid wage for Uber job probability
         }
-        result = solve_model(params)
-        results.append(result)
+    result = solve_model(params)
+    results.append(result)
 
-#plot the value functions for each combination of wfg and p
+
+#PLOT
 import matplotlib.pyplot as plt
 
 # Convert results to a DataFrame for easier plotting
-df = pd.DataFrame(results)
-
-#plot
-fig, axs = plt.subplots(2, 2, figsize=(14, 10), sharex=True, sharey=True)
-wg_values = sorted(df['w_g'].unique())
-value_functions = ['Vf_g', 'Vf_b', 'V_U', 'V_G']
-
-for idx, wg in enumerate(wg_values):
-    ax = axs[idx // 2, idx % 2]
-    subset = df[df['w_g'] == wg]
-    for vf in value_functions:
-        ax.plot(subset['wfg'], subset[vf], label=vf)
-    ax.set_title(f'Uber wage (w_g) = {wg}')
-    ax.set_xlabel('Good job wage (wfg)')
-    ax.set_ylabel('Value function')
-    ax.legend()
-    ax.grid(True)
-    ax.set_xlim(right=5000)
-    ax.set_ylim(top=400000)
-
-plt.tight_layout()
+df_results = pd.DataFrame(results)
+fig, ax = plt.subplots(figsize=(12, 6), layout='constrained')
+ax.plot(df_results['wf'], df_results['V_f'], label='Value of Formal Job (V_f)', color='blue')
+ax.plot(df_results['wf'], df_results['V_U'], label='Value of Unemployment (V_U)', color='orange')
+ax.plot(df_results['wf'], df_results['V_G'], label='Value of Uber (V_G)', color='green')
+ax.set_ylabel('Value')
+ax.set_xlabel('Wage from Good Job (w_f)')
+ax.legend()
 plt.show()
 
 
+
+
+#############Simulação
+
+def simulate_economy(params, n_pop=100000, initial_unemp_rate=0.1, max_sim_periods=200, sim_tol=1e-6):
+    """
+    Simula a dinâmica de uma população de acordo com o modelo.
+
+    Args:
+        params (dict): Dicionário com todos os parâmetros do modelo.
+        n_pop (int): Tamanho total da população a ser simulada.
+        initial_unemp_rate (float): Taxa de desemprego inicial (ex: 0.05 para 5%).
+        max_sim_periods (int): Número máximo de períodos para a simulação.
+        sim_tol (float): Tolerância para verificar a convergência do estado estacionário.
+
+    Returns:
+        pandas.DataFrame: Um DataFrame com a trajetória do número de pessoas em cada estado.
+    """
+    # 1. Resolver o modelo para obter as funções valor e determinar as escolhas ótimas
+    value_functions = solve_model(params)
+    V_f, V_U, V_G = value_functions['V_f'], value_functions['V_U'], value_functions['V_G']
+
+    # Determina as escolhas ótimas dos agentes com base nos valores
+    # O que um demitido faz se PUDER ir pra Uber?
+    choice_layoff_is_uber = V_G > V_U
+    # Um desempregado aceita uma oferta formal?
+    choice_unemployed_accepts_job = V_f > V_U
+    # Um motorista de Uber aceita uma oferta formal?
+    choice_uber_accepts_job = V_f > V_G
+
+    # Desempacota parâmetros necessários para as transições
+    disp = params['prob_disp']
+    phi_u = params['phi_unemployed']
+    phi_g = params['phi_uber']
+    prob_can_uber = prob_uber(params['w_f'], params['wage_mid'])
+
+    # 2. Inicializar a população no período 0
+    U_t = n_pop * initial_unemp_rate
+    E_t = n_pop - U_t
+    G_t = 0.0
+
+    # Armazena a trajetória
+    trajectory = [{'Periodo': 0, 'Empregados (E)': E_t, 'Desempregados (U)': U_t, 'Uber (G)': G_t, 
+                   'Share E': E_t/n_pop, 'Share U': U_t/n_pop, 'Share G': G_t/n_pop}]
+
+    # 3. Rodar a simulação
+    for t in range(max_sim_periods):
+        # Armazena os valores do período anterior para checar convergência
+        E_prev, U_prev, G_prev = E_t, U_t, G_t
+
+        # --- Calcular os fluxos de um estado para outro ---
+
+        # Fluxos saindo de Empregados (E)
+        newly_laid_off = E_t * disp
+        
+        # Desses demitidos, quantos podem ir para a Uber?
+        flow_E_to_G = newly_laid_off * prob_can_uber * (1 if choice_layoff_is_uber else 0)
+        flow_E_to_U = newly_laid_off * (1 - prob_can_uber) + \
+                      newly_laid_off * prob_can_uber * (0 if choice_layoff_is_uber else 1)
+
+        # Fluxos saindo de Desempregados (U)
+        flow_U_to_E = U_t * phi_u * (1 if choice_unemployed_accepts_job else 0)
+
+        # Fluxos saindo da Uber (G)
+        flow_G_to_E = G_t * phi_g * (1 if choice_uber_accepts_job else 0)
+
+        # --- Calcular os novos totais para o período t+1 ---
+        E_t1 = E_t + flow_U_to_E + flow_G_to_E - newly_laid_off
+        U_t1 = U_t + flow_E_to_U - flow_U_to_E
+        G_t1 = G_t + flow_E_to_G - flow_G_to_E 
+        
+        E_t, U_t, G_t = E_t1, U_t1, G_t1
+
+        trajectory.append({'Periodo': t + 1, 'Empregados (E)': E_t, 'Desempregados (U)': U_t, 'Uber (G)': G_t,
+         'Share E': E_t/n_pop, 'Share U': U_t/n_pop, 'Share G': G_t/n_pop})
+
+        # 4. Checar convergência
+        share_E = E_t / n_pop
+        share_U = U_t / n_pop
+        share_G = G_t / n_pop
+        
+        share_E_prev = E_prev / n_pop
+        share_U_prev = U_prev / n_pop
+        share_G_prev = G_prev / n_pop
+
+        error_share = max(abs(share_E - share_E_prev), abs(share_U - share_U_prev), abs(share_G - share_G_prev))
+
+        if error_share < sim_tol:
+            print(f"Convergência atingida no período {t+1}.")
+            break
+            
+    if t == max_sim_periods - 1:
+        print("Aviso: A simulação atingiu o número máximo de períodos sem convergir.")
+
+    return pd.DataFrame(trajectory)
+
+def plot_trajectory(df_trajectory):
+    """Função auxiliar para plotar os resultados da simulação."""
+    df_plot = df_trajectory.set_index('Periodo')
+    
+    # Converte para percentual
+    df_plot = df_plot / df_plot.sum(axis=1).values[0] * 100
+    
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    ax.plot(df_plot.index, df_plot['Empregados (E)'], label='Empregados Formais (%)', lw=2.5)
+    ax.plot(df_plot.index, df_plot['Desempregados (U)'], label='Desempregados (%)', lw=2.5)
+    ax.plot(df_plot.index, df_plot['Uber (G)'], label='Motoristas de Uber (%)', lw=2.5)
+    
+    ax.set_title('Dinâmica Populacional do Mercado de Trabalho', fontsize=16)
+    ax.set_xlabel('Período', fontsize=12)
+    ax.set_ylabel('Share da População (%)', fontsize=12)
+    ax.legend(fontsize=11)
+    ax.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+#Cenário para ser simulado
+params_cenario = {
+        'w_g': 3500,               # Renda mensal na Uber
+        'w_f': 1500,               # Salário formal mensal
+        'beta': 0.99,              # Fator de desconto
+        'prob_out': 1/(40*12),     # Probabilidade de sair do mercado (aposentadoria)
+        'prob_disp': 0.01,         # Probabilidade de demissão do emprego formal
+        'phi_uber': 0.1,           # Probabilidade de achar emprego formal sendo da Uber
+        'phi_unemployed': 0.2,     # Probabilidade de achar emprego formal estando desempregado
+        'wage_mid': 5000           # Salário mediano para a prob. de poder ser Uber
+    }
+
+
+# Roda a simulação
+trajetoria_df = simulate_economy(params=params_cenario, 
+                                    n_pop=100000, 
+                                    initial_unemp_rate=0.1,
+                                    max_sim_periods = 20000)
+
+plot_trajectory(trajetoria_df)
