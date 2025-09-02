@@ -133,11 +133,55 @@ for(y in years){
       demitido_privado = fcase(mes_desligamento <= mes_aux
                                & mes_desligamento >= min_mes_semestre
                                & privado == 1, 1, default = 0),
+      demitido_baixo_sal = fcase(mes_desligamento <= mes_aux
+                               & mes_desligamento >= min_mes_semestre
+                               & privado == 1
+                               & salario <= 2000, 1, default = 0),
+      demitido_med_sal = fcase(mes_desligamento <= mes_aux
+                                 & mes_desligamento >= min_mes_semestre
+                                 & privado == 1
+                                 & salario > 2000 & salario <= 6000, 1, default = 0),
+      demitido_alto_sal = fcase(mes_desligamento <= mes_aux
+                                 & mes_desligamento >= min_mes_semestre
+                                 & privado == 1
+                                 & salario > 6000 & salario <= 10000, 1, default = 0),
+      demitido_altissimo_sal = fcase(mes_desligamento <= mes_aux
+                                 & mes_desligamento >= min_mes_semestre
+                                 & privado == 1
+                                 & salario >10000, 1, default = 0),
+
+      
       admitido_privado = fcase(mes_admissao <= mes_aux
                                & mes_admissao >= min_mes_semestre
-                               & privado == 1, 1, default = 0))] 
-    rais_alt = rais_alt[, .(demitido = sum(demitido_privado),
-                            admitido = sum(admitido_privado)),
+                               & privado == 1, 1, default = 0),
+      admitido_baixo_sal = fcase(mes_admissao <= mes_aux
+                               & mes_admissao >= min_mes_semestre
+                               & privado == 1
+                               & salario <= 2000, 1, default = 0),
+      admitido_med_sal = fcase(mes_admissao <= mes_aux
+                                 & mes_admissao >= min_mes_semestre
+                                 & privado == 1
+                                 & salario > 2000 & salario <= 6000, 1, default = 0),
+      admitido_alto_sal = fcase(mes_admissao <= mes_aux
+                                 & mes_admissao >= min_mes_semestre
+                                 & privado == 1
+                                 & salario > 6000 & salario <= 10000, 1, default = 0),
+      admitido_altissimo_sal = fcase(mes_admissao <= mes_aux
+                                 & mes_admissao >= min_mes_semestre
+                                 & privado == 1
+                                 & salario > 10000  , 1, default = 0)
+      )] 
+    rais_alt = rais_alt[, .(demitido = sum(demitido_privado)
+                            , demitido_baixo_sal = sum(demitido_baixo_sal)
+                            , demitido_med_sal = sum(demitido_med_sal)
+                            , demitido_alto_sal = sum(demitido_alto_sal)
+                            , demitido_altissimo_sal = sum(demitido_altissimo_sal)
+                            , admitido = sum(admitido_privado)
+                            , admitido_baixo_sal = sum(admitido_baixo_sal)
+                            , admitido_med_sal = sum(admitido_med_sal)
+                            , admitido_alto_sal = sum(admitido_alto_sal)
+                            , admitido_altissimo_sal = sum(admitido_altissimo_sal)
+                            ),
                         by = .(rgi)]
     
     #dropar ainda não foi admitidos
@@ -157,6 +201,8 @@ for(y in years){
         rais_s[, tempo_emprego := max(0, tempo_emprego)]
       }
     }
+    
+    rais_s[, aux_sum := 1]
     
     
     
@@ -198,6 +244,10 @@ for(y in years){
                           .(emprego_lths = .N 
                             ,tenure_lths = mean(tempo_emprego) 
                             ,salario_lths = mean(salario)
+                            , emprego_lths_baixo = sum(aux_sum[salario <= 2000])
+                            ,emprego_lths_med = sum(aux_sum[salario > 2000 & salario <= 6000])
+                            ,emprego_lths_alto = sum(aux_sum[salario > 6000 & salario <= 10000])
+                            ,emprego_lths_altissimo = sum(aux_sum[salario > 10000])
                           ),
                           by = .(rgi)]
     
@@ -205,6 +255,10 @@ for(y in years){
                                 .(emprego_hs_somecol = .N
                                   ,tenure_hs_somecol = mean(tempo_emprego) 
                                   ,salario_hs_somecol = mean(salario)
+                                  , emprego_hs_baixo = sum(aux_sum[salario <= 2000])
+                                  ,emprego_hs_med = sum(aux_sum[salario > 2000 & salario <= 6000])
+                                  ,emprego_hs_alto = sum(aux_sum[salario > 6000 & salario <= 10000])
+                                  ,emprego_hs_altissimo = sum(aux_sum[salario > 10000])
                                 ),
                                 by = .(rgi)]
     
@@ -212,6 +266,10 @@ for(y in years){
                          .(emprego_col = .N
                            ,tenure_col = mean(tempo_emprego) 
                            ,salario_col = mean(salario)
+                           ,emprego_col_baixo = sum(aux_sum[salario <= 2000])
+                           ,emprego_col_med = sum(aux_sum[salario > 2000 & salario <= 6000])
+                           ,emprego_col_alto = sum(aux_sum[salario > 6000 & salario <= 10000])
+                           ,emprego_col_altissimo = sum(aux_sum[salario > 10000])
                          ),
                          by = .(rgi)]
     
@@ -233,24 +291,43 @@ for(y in years){
                            ),
                            by = .(rgi)]
     
-    privado_baixo_sal = rais_s[privado == 1 & salario <= 1500,
+    privado_baixo_sal = rais_s[privado == 1 & salario <= 2000,
                                .(emprego_baixo_sal = .N,
                                  tenure_baixo_sal = mean(tempo_emprego)),
                                by = .(rgi)]
     
-    privado_med_sal = rais_s[privado == 1 & salario > 1500 & salario <= 3000,
+    privado_med_sal = rais_s[privado == 1 & salario > 2000 & salario <= 6000,
                              .(emprego_med_sal = .N,
                                tenure_med_sal = mean(tempo_emprego)),
                              by = .(rgi)]
     
-    privado_alto_sal = rais_s[privado == 1 & salario > 3000 & salario <= 6000,
+    privado_alto_sal = rais_s[privado == 1 & salario > 6000 & salario <= 10000,
                               .(emprego_alto_sal = .N,
                                 tenure_alto_sal = mean(tempo_emprego)),
                               by = .(rgi)]
     
-    privado_altissimo_sal = rais_s[privado == 1 & salario > 6000,
-                                   .(emprego_altissimo_sal = .N,
-                                     tenure_altissimo_sal = mean(tempo_emprego)),
+    privado_altissimo_sal = rais_s[privado == 1 & salario > 10000 ,
+                              .(emprego_altissimo_sal = .N,
+                                tenure_altissimo_sal = mean(tempo_emprego)),
+                              by = .(rgi)]
+    
+    
+    privado_sal_acumulado = rais_s[privado == 1,
+                                   .(emprego_1 = sum(aux_sum[salario >= 1000]),
+                                     emprego_2 = sum(aux_sum[salario >= 2000]),
+                                     emprego_3 = sum(aux_sum[salario >= 3000]),
+                                     emprego_4 = sum(aux_sum[salario >= 4000]),
+                                     emprego_5 = sum(aux_sum[salario >= 5000]),
+                                     emprego_6 = sum(aux_sum[salario >= 6000]),
+                                     emprego_7 = sum(aux_sum[salario >= 7000]),
+                                     emprego_8 = sum(aux_sum[salario >= 8000]),
+                                     emprego_9 = sum(aux_sum[salario >= 9000]),
+                                     emprego_10 = sum(aux_sum[salario >= 10000]),
+                                     emprego_11 = sum(aux_sum[salario >= 11000]),
+                                     emprego_12 = sum(aux_sum[salario >= 12000]),
+                                     emprego_13 = sum(aux_sum[salario >= 13000]),
+                                     emprego_14 = sum(aux_sum[salario >= 14000])
+                                     ),
                                    by = .(rgi)]
     
     baixo_cbo = rais_s[privado == 1 & rank_wage_cbo == 4,
@@ -367,6 +444,9 @@ for(y in years){
     combinado = merge(combinado, privado_altissimo_sal,
                       by = "rgi", all.x = TRUE)
     
+    combinado = merge(combinado, privado_sal_acumulado,
+                      by = "rgi", all.x = TRUE)
+    
     combinado = merge(combinado, baixo_cbo,
                       by = "rgi", all.x = TRUE)
     
@@ -408,8 +488,7 @@ for(y in years){
     #juntar no rais_agg
     rais_agg = rbind(rais_agg, combinado)
     
-    rm(combinado, rgis, privado,  publico,
-       temporario, rais_s, meio_periodo)
+    rm(rais_s)
   }
   rm(rais)
   print(y)

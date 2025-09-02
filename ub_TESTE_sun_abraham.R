@@ -26,23 +26,26 @@ df = read_parquet("../data/ub_rais_merged.parquet")
 minimo_cidades = 10
 
 df = df[!(semestre_entrada %in% c(20141, 20142, 20151, 20152))]
-df[, conta_cidade_grupo := length(unique(rgi)), by = .(semestre_entrada_did)]
-df = df[conta_cidade_grupo >=minimo_cidades]
 df[,uf := substr(rgi,1, 2)]
 df[,region := substr(rgi, 1,1)]
 df_est = df[anosem == 20142]
+df = df[anosem <= 20192]
 
 ######################################
 #Propensity Score
 ######################################
 #Estimar propensity score
-ps_model = glm(tratado ~  lincome_r
-               + log(pea_r)
-               # + log(pop_max)
+ps_model = glm(tratado ~  
+                 +lincome_r
                + unem_rate_r
-               + inf_rate_r
+               + lemprego_14
+               + lpop_r
+               # + lmax_pop_r
+               # + log(pop_max)
+              
+               # + inf_rate_r
                # + lemployed_r
-               + age_r
+               # + age_r
                # + factor(region)
                , data = df_est,
               family = 'binomial')
@@ -81,7 +84,7 @@ df[, peso := fifelse(
 
 
 
-m = feols(log(emprego_lths) ~ sunab(semestre_entrada_did, anosem_did) #+log(pop)
+m = feols(log(emprego_privado) ~ sunab(semestre_entrada_did, anosem_did) #+log(pop)
           | rgi + anosem_did  ,
           data = df,
           weights = ~peso,

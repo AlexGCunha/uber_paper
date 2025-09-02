@@ -23,9 +23,11 @@ df = df %>%
 #Define PEA
 df = df %>% 
   #Employed will be individuals who worked even if they did not receive in the ref week
-  mutate(employed = ifelse(worked_ref_week==1|npaid1==1|npaid2==1|npaid3==1,1,0)) %>% 
+  mutate(employed = ifelse(age >= 18 
+                           & (worked_ref_week==1|npaid1==1|npaid2==1|npaid3==1),
+                           1,0)) %>% 
   #In PEA will be individuals who are either employed or searched for a job
-  mutate(in_pea = ifelse((employed==1|tried_job==1)&age>=16,1,0)) 
+  mutate(in_pea = ifelse((employed==1|tried_job==1)&age>=18,1,0)) 
 gc()
 
 
@@ -37,7 +39,9 @@ df = df %>%
                               is.na(employed)|is.na(position) ~ NA_real_,
                               T ~0)) %>%
   #Formal will be everyone else that is employed
-  mutate(formal = 1-informal*employed) %>% 
+  mutate(formal = case_when(employed ==1 & position %in% c(1)  ~ 1,
+                              is.na(employed)|is.na(position) ~ NA_real_,
+                              T ~0)) %>% 
   #Self employed
   mutate(self_emp = ifelse(position==5,1,0))
 
@@ -126,6 +130,38 @@ micro[, id_municipio := NULL]
 df = df %>% 
   left_join(micro, by = 'munic')
 
+#agregar dados ao nível do município
+agg_munic = df %>% 
+  group_by(munic) %>% 
+  summarise(max_pop_r = sum(weight),
+            max_employed_r = sum(employed * weight, na.rm = T),
+            max_informal_r = sum(informal * weight, na.rm = T),
+            max_pea_r = sum(in_pea*weight, na.rm = T),
+            max_tot_income_r = sum(wage_total*weight, na.rm = T),
+            max_lths_r = sum(lths*weight, na.rm = T),
+            max_hs_some_college_r = sum(hs_some_college * weight, na.rm = T),
+            max_college_more_r = sum(college_more * weight, na.rm = T),
+            max_aux_age = sum(age * in_pea * weight),
+            rgi = first(rgi)) %>% 
+  ungroup() %>% 
+  mutate(max_inf_rate_r = max_informal_r/max_employed_r,
+         max_unem_rate_r = 1 - max_employed_r/max_pea_r,
+         max_lths_rate_r = max_lths_r/max_pop_r,
+         max_hs_rate_r = max_hs_some_college_r/max_pop_r,
+         max_college_rate_r = max_college_more_r/max_pop_r,
+         max_mean_income_r = max_tot_income_r/max_employed_r,
+         max_age_r = max_aux_age/max_pea_r)
+
+
+
+#manter somente a cidade com maior populacao de cada microrregiao
+agg_munic = agg_munic %>% 
+  group_by(rgi) %>% 
+  mutate(max_pop = max(max_pop_r)) %>% 
+  ungroup() %>% 
+  filter(max_pop_r == max_pop) %>% 
+  select(-c(max_pop, munic))
+
 
 #aggregate at microrregion level
 agg = df %>% 
@@ -133,6 +169,7 @@ agg = df %>%
   summarise(pop_r = sum(weight),
             employed_r = sum(employed * weight, na.rm = T),
             informal_r = sum(informal * weight, na.rm = T),
+            formal_r = sum(formal * weight, na.rm = T),
             pea_r = sum(in_pea*weight, na.rm = T),
             tot_income_r = sum(wage_total*weight, na.rm = T),
             lths_r = sum(lths*weight, na.rm = T),
@@ -144,6 +181,7 @@ agg = df %>%
 #additional variable creation
 agg = agg %>% 
   mutate(inf_rate_r = informal_r/employed_r,
+         formal_rate_r = formal_r/employed_r,
          unem_rate_r = 1 - employed_r/pea_r,
          lths_rate_r = lths_r/pop_r,
          hs_rate_r = hs_some_college_r/pop_r,
@@ -151,6 +189,11 @@ agg = agg %>%
          mean_income_r = tot_income_r/employed_r,
          age_r = aux_age/pea_r)
 
+#adicionar dados do maior municipio
+agg = agg %>% 
+  left_join(agg_munic, by = 'rgi', na_matches = "never")
+
+print(summary(agg))
 
 write_parquet(agg,"../data/rgi_data_10.parquet")
 rm(list = ls())

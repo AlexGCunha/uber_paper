@@ -125,6 +125,21 @@ write_parquet(read_sql(query),"../data/census_pes_2010.parquet")
 
 
 
+############################################################
+#2010 Census - Households
+############################################################
+#Individuals
+query <- "SELECT id_municipio as munic,
+  peso_amostral as weight,
+  v6529 as rendimento_dom,
+  v6531 as rendimento_dom_pc,
+  v0222 as automovel_particular,
+  v0401 as num_morador,
+  FROM basedosdados.br_ibge_censo_demografico.microdados_domicilio_2010"
+
+
+write_parquet(read_sql(query),"../data/census_dom_2010.parquet")
+
 
 
 #############################
@@ -276,6 +291,19 @@ WHERE a. data_opcao_mei IS NOT NULL
 GROUP BY id_municipio, data_opcao_mei, data_exclusao_mei
 "
 write_parquet(read_sql(query),"cnpj_mei.parquet")
+gc()
+beep()
+
+
+#############################
+#IDH Municipios
+#############################
+
+query <- "SELECT id_municipio, idhm
+FROM basedosdados.mundo_onu_adh.municipio 
+WHERE ano = 2010
+"
+write_parquet(read_sql(query),"../data/idhm.parquet")
 gc()
 beep()
 

@@ -1,3 +1,12 @@
+#tema padrão para g'raficos
+tema_padrao = theme_minimal()+
+  theme(text = element_text(family = 'serif', size = 12),
+        axis.text = element_text(, size = 10),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = 'none')
+
+
 #regressao
 regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
                         dep_em_relativo_emp =0,
@@ -9,6 +18,7 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
                         est_method = 'dr', 
                         control18 =0){
   df_use = copy(data)
+  set.seed(456)
   
   if(dep_em_log ==1){
     variaveis = c(variavel_dependente)
@@ -31,7 +41,7 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
   if(dep_relativo_2014 == 1){
     variaveis = c(variavel_dependente)
     df_use = df_use %>% 
-      group_by(id_municipio) %>% 
+      group_by(rgi) %>% 
       mutate(across(variaveis, ~./.[anosem==20142])) %>% 
       ungroup() %>% 
       data.table()
@@ -64,9 +74,9 @@ regressao_cs = function(data = df, variavel_dependente, dep_em_log = 0,
 
 
 #Plot Function
-plot_es = function(model, title = ""){
-  att = unlist(model)$overall.att
-  se = unlist(model)$overall.se
+plot_es = function(model, title = "", lim_y = c(-0.2, 0.2)){
+  att = model[[2]]$overall.att
+  se = model[[2]]$overall.se
   att_abs = abs(att)
   p = (1- pnorm(att_abs/se))*2
   #Guarantee p is rounded to 3 decimals
@@ -90,79 +100,11 @@ plot_es = function(model, title = ""){
   #define position:
   max_estimate = max(model[[2]]$att.egt)
   max_se = max(model[[2]]$se.egt)
-  position = max_estimate + 1.5*max_se
+  position = lim_y[2] - 0.01
   
   plot = ggdid(model[[2]], title = title)+
-    # coord_cartesian(xlim = c(-6, 5)) + 
-    # xlim(-6,6)+
-    theme(plot.title = element_text(size=8),
-          legend.position = 'none') +
-    annotate("text", x = -6, y = position,label = message, hjust = 0)
-}
-
-#plots from twfe estimations
-plot_fe = function(model, title = ""){
-  info = tidy(model, conf.int = TRUE)
-  info = info %>% 
-    mutate(period = c(seq(-6, -2, 1), seq(0, 5, 1))) %>% 
-    select(period, estimate, conf.low, conf.high)
-  
-  #add info for baseline period (all 0)
-  base = c(-1, 0, 0, 0)
-  info = rbind(info, base)
-  info = info %>% arrange(period)
-  info = info %>% 
-    mutate(after = ifelse(period < 0, "pre", "post"))
-  
-  #plot
-  plot = ggplot(info, aes(x = period, y = estimate, color = after))+
-    geom_point()+
-    geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = .1)+
-    theme_classic()+ geom_hline(aes(yintercept = 0), linetype ="dashed")+
-    labs(title = title, y = "")+theme(legend.position = "none")
-  
-  return(plot)
-  
-  
-  
-  
-}
-
-
-#################################
-#Honest Did by Rambachan nad Roth (2022)
-#Inplemented by Pedro Santanna
-#################################
-
-#' @title honest_did
-#'
-#' @description a function to compute a sensitivity analysis
-#'  using the approach of Rambachan and Roth (2021)
-honest_did <- function(...) UseMethod("honest_did")
-
-#' @title honest_did.AGGTEobj
-#'
-#' @description a function to compute a sensitivity analysis
-#'  using the approach of Rambachan and Roth (2021) when
-#'  the event study is estimating using the `did` package
-#'
-#' @param e event time to compute the sensitivity analysis for.
-#'  The default value is `e=0` corresponding to the "on impact"
-#'  effect of participating in the treatment.
-#' @param type Options are "smoothness" (which conducts a
-#'  sensitivity analysis allowing for violations of linear trends
-#'  in pre-treatment periods) or "relative_magnitude" (which
-#'  conducts a sensitivity analysis based on the relative magnitudes
-#'  of deviations from parallel trends in pre-treatment periods).
-#' @inheritParams HonestDiD::createSensitivityResults
-#' @inheritParams HonestDid::createSensitivityResults_relativeMagnitudes
-honest_did.AGGTEobj <- function(es,
-                                e          = 0,
-                                type       = c("smoothness", "relative_magnitude"),
-                                gridPoints = 100,
-                                ...) {
-  
-  
-  
-  return(list(robust_ci=robust_ci, orig_ci=orig_ci, type=type))
+    annotate("text", x = -8, y = position,label = message, hjust = 0, size= 3.5)+
+    ylim(lim_y[1], lim_y[2])+
+    tema_padrao+
+    scale_color_brewer(palette = 'Dark2')
 }

@@ -13,7 +13,7 @@ def prob_uber(wf, mid_wage):
     Returns:
         float: Probability of finding a job while driving for Uber.
     """
-    prob = 1/(1+math.exp(-(wf-mid_wage)/1000))
+    prob = 1/(1+math.exp(-(wf-mid_wage)/(1000*12)))
     return(prob)
 
 
@@ -230,21 +230,21 @@ def plot_trajectory(df_trajectory):
 
 #Cenário para ser simulado
 params_cenario = {
-        'w_g': 3500,               # Renda mensal na Uber
-        'w_f': 1500,               # Salário formal mensal
+        'w_g': 3500*12,               # Renda mensal na Uber
+        'w_f': 2000*12,               # Salário formal mensal
         'beta': 0.99,              # Fator de desconto
         'prob_out': 1/(40*12),     # Probabilidade de sair do mercado (aposentadoria)
-        'prob_disp': 0.01,         # Probabilidade de demissão do emprego formal
+        'prob_disp': 0.04,         # Probabilidade de demissão do emprego formal
         'phi_uber': 0.1,           # Probabilidade de achar emprego formal sendo da Uber
         'phi_unemployed': 0.2,     # Probabilidade de achar emprego formal estando desempregado
-        'wage_mid': 5000           # Salário mediano para a prob. de poder ser Uber
+        'wage_mid': 5000*12           # Salário mediano para a prob. de poder ser Uber
     }
 
 
 # Roda a simulação
 trajetoria_df = simulate_economy(params=params_cenario, 
                                     n_pop=100000, 
-                                    initial_unemp_rate=0.1,
+                                    initial_unemp_rate=1,
                                     max_sim_periods = 20000)
 
 plot_trajectory(trajetoria_df)

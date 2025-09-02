@@ -1,6 +1,7 @@
 ################################################################################
 #Esse código irá:
 #- limpar os dados de emprego e 
+#- combinar com outros datasets
 ################################################################################
 library(tidyverse)
 library(data.table)
@@ -19,6 +20,12 @@ micro = micro[, .(CD_GEOCODI, cod_rgi, nome_mun)]
 colnames(micro) = c("id_municipio", 'rgi', 'nome_mun')
 micro[, `:=`(id_municipio = as.integer(id_municipio),
              rgi = as.integer(rgi))]
+
+#adicionar salario e emprego  em 2014
+rais[, `:=`(salario_14 = salario_privado[anosem == 20142],
+            emprego_14 = emprego_privado[anosem == 20142]), by = .(rgi)]
+rais[, `:=`(lsalario_14 = log(salario_14),
+            lemprego_14 = log(emprego_14))]
 
 
 ###################
@@ -85,7 +92,8 @@ populacao[, ano := as.integer(ano)]
 
 #adicionar dados de mmc e agregar
 populacao = merge(populacao, micro, by = 'id_municipio', all.x = TRUE)
-populacao = populacao[, .(pop = sum(pop), pop_max = max(pop)), by = .(ano, rgi)]
+populacao = populacao[, .(pop = sum(pop), 
+                          pop_max = max(pop)), by = .(ano, rgi)]
 
 rais = merge(rais, populacao, by = c('rgi', 'ano'), all.x = TRUE)
 
@@ -93,6 +101,9 @@ rais = merge(rais, populacao, by = c('rgi', 'ano'), all.x = TRUE)
 rais[, pop_14 := pop[anosem == 20142], by = 'rgi']
 rais[, pop_14_max := pop_max[anosem == 20142], by = 'rgi']
 
+
+#taxa de emprego formal 14 (emprego/pop)
+rais[, taxa_formal := emprego_14/pop_14]
 ###################
 #Variáveis Censo 2010
 ###################
@@ -106,12 +117,17 @@ rais = rais[!is.na(pop_r)]
 
 #criar variaveis em log
 rais[, `:=`(lincome_r = log(mean_income_r),
+            ltot_income_r = log(tot_income_r),
             lemployed_r = log(employed_r),
             lpop_r = log(pop_r),
             lpea_r = log(pea_r),
-            lpop = log(pop),
-            lpop_max = log(pop_14_max))]
+            lpop_14 = log(pop_14),
+            lmax_pop_r = log(max_pop_r),
+            lmax_pea_r = log(max_pea_r),
+            lpop_14_max = log(pop_14_max))]
 
+#taxa de participação
+rais[, tx_participacao_r := pea_r/pop_r]
 
 ###################
 #Frota de veículos
@@ -131,6 +147,71 @@ frota = frota[!is.na(rgi)]
 frota = frota[, .(n_veics = sum(quantidade)), by = .(rgi, anosem)]
 rais = merge(rais, frota, by = c("rgi", "anosem"), all.x = TRUE)
 
+#definir frota em 2014
+rais[, frota14 := n_veics[anosem == 20142], by = .(rgi)]
+rais[, lfrota14 := log(frota14)]
+
+###################
+#CAGED
+###################
+#Abrir dados caged
+caged = read_parquet("../data/CAGED_mod.parquet") %>% data.table()
+precos = read_excel("../data/deflator_inpc.xlsx", sheet = "anual_junho") %>% 
+  select(ano, deflator_24)
+
+#adicionar dados de microrregiao
+caged[, id_municipio := as.numeric(id_municipio)]
+caged = merge(caged, micro, by = 'id_municipio', all.x = TRUE)
+
+#deflacionar salarios
+caged = merge(caged, precos, by = 'ano', all.x = TRUE)
+caged[, wages := wages * deflator_24]
+
+#adicionar info de grau salarial
+caged[, grau_salario := fcase(
+  wages <= 2000, 'baixo',
+  wages > 2000 & wages <= 6000, 'med',
+  wages > 6000 & wages <= 10000, 'alto', 
+  default = 'altissimo'
+)]
+
+#adicionar info de semestre
+caged[, semestre := fifelse(mes <= 6, 1, 2)]
+caged[, anosem := as.integer(paste0(ano, semestre))]
+
+#definir admissao e demissao mais explicitamente
+caged[, movimento := fifelse(saldo_movimentacao == 1, 'admissao', 'demissao')]
+
+#Agrupar
+caged = caged[, .(saldo = sum(saldo)) , 
+              by = .(rgi, anosem, movimento, grau_salario)]
+
+#Adicionar totais, sem ser por salário
+caged_alt = copy(caged)
+caged_alt = caged_alt[, .(saldo = sum(saldo)),
+                      by = .(rgi, anosem, movimento)]
+caged_alt[, grau_salario := 'total']
+caged_alt = caged_alt[, .(rgi, anosem, movimento, grau_salario, saldo )]
+
+caged = rbind(caged, caged_alt)
+rm(caged_alt)
+
+#expandir para colunas
+caged = pivot_wider(caged, id_cols = c(rgi, anosem),
+                    names_from = c(movimento, grau_salario),
+                    values_from = saldo) %>% 
+  data.table()
+
+
+#adicionar 0 para meses sem admissao ou demissao
+caged =caged %>% 
+  mutate(across(c(starts_with('admissao'), starts_with('demissao')),
+                ~ ifelse(is.na(.), 0, .))) %>% 
+  data.table()
+
+
+#Adicionar ao df principal
+rais = merge(rais, caged, by = c('rgi', 'anosem'), all.x = TRUE)
 
 ###################
 #Nascimentos
@@ -151,6 +232,25 @@ nascimentos[, anosem := as.integer(anosem)]
 
 rais = merge(rais, nascimentos, by = c("rgi", "anosem"), all.x = TRUE)
 
+###################
+#IDH Municipal
+###################
+idh = read_parquet('../data/idhm.parquet')
+
+#adicionar dados de microrregiao
+idh = merge(idh, micro, by = 'id_municipio', all.x = TRUE) %>% data.table()
+
+#adicionar populacao
+censo = read_parquet('../data/munic_data_10.parquet')
+censo = censo %>% select(munic, pop_m)
+idh[, munic := substr(id_municipio, 1, 6)]
+idh = merge(idh, censo, by = ('munic'), all.x = TRUE)
+
+#Calular idh medio ao nivel da regiao, ponderado pela populacao
+idh = idh[, .(idh_r = weighted.mean(idhm, pop_m)), by = .(rgi)]
+
+#adicionar ao dataset principal
+rais = merge(rais, idh, by = 'rgi', all.x = TRUE)
 
 #########################################
 #Tax collection
