@@ -24,16 +24,16 @@ controles = as.formula(" ~  lincome_r  + unem_rate_r   +lpea_r +lemprego_14 ")
 sem_controles = as.formula("~ 1")
 
 #definir pasta
-data = "202508"
+data = "202509"
 path_save = paste0("../Output/",data,"/")
 
 ######################################
 #Emprego privado
 ######################################
-
-set.seed(123)
 m2 = regressao_cs(variavel_dependente = "emprego_privado",
-                  dep_em_log= 1, controles_use = controles,
+                  # dep_em_log = 1,
+                  dep_relativo_2014= 1,
+                  controles_use = controles,
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
@@ -46,17 +46,17 @@ ggsave(paste0(path_save,"emprego_noeduc.png"), height = 5, width = 9)
 ######################################
 # Emprego privado- Por Educação
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_lths",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_hs_somecol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_col",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 p1 = plot_es(m1, title = 'Less Than HS',lim_y = c(-0.15, 0.07))
@@ -73,24 +73,24 @@ ggsave(paste0(path_save,"emprego_privado_escolaridade.png"), height = 5, width =
 ######################################
 # Emprego privado- Por Salario
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_baixo_sal",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_med_sal",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_alto_sal",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_altissimo_sal",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
@@ -110,24 +110,24 @@ ggsave(paste0(path_save,"emprego_privado_nivel_sal.png"), height = 5, width = 9)
 ######################################
 # Emprego LTHS- Por Salario
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_lths_baixo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_lths_med",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_lths_alto",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_lths_altissimo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
@@ -144,24 +144,24 @@ ggsave(paste0(path_save,"emprego_lths_nivel_sal.png"), height = 5, width = 9)
 ######################################
 # Emprego HS Some Col- Por Salario
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_hs_baixo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_hs_med",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_hs_alto",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_hs_altissimo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
@@ -178,32 +178,32 @@ ggsave(paste0(path_save,"emprego_hs_nivel_sal.png"), height = 5, width = 9)
 ######################################
 # Emprego College- Por Salario
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_col_baixo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_col_med",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_col_alto",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_col_altissimo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 
-p1 = plot_es(m1, title = '(,2000]', lim_y = c(-0.3, 0.15))
-p2 = plot_es(m2, title = "(2000,6000]", lim_y = c(-0.3, 0.15))
-p3 = plot_es(m3, title = "[6000, 10000]", lim_y = c(-0.3, 0.15))
-p4 = plot_es(m4, title = "(10000,)", lim_y = c(-0.3, 0.15))
+p1 = plot_es(m1, title = '(,2000]', lim_y = c(-0.3, 0.2))
+p2 = plot_es(m2, title = "(2000,6000]", lim_y = c(-0.3, 0.2))
+p3 = plot_es(m3, title = "[6000, 10000]", lim_y = c(-0.3, 0.2))
+p4 = plot_es(m4, title = "(10000,)", lim_y = c(-0.3, 0.2))
 plot_grid(p1,p2, p3, p4, nrow = 2)
 
 ggsave(paste0(path_save,"emprego_col_nivel_sal.png"), height = 5, width = 9)
@@ -211,13 +211,13 @@ ggsave(paste0(path_save,"emprego_col_nivel_sal.png"), height = 5, width = 9)
 ######################################
 # Emprego privado- Por Sexo
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_homens",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_mulheres",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -233,17 +233,17 @@ ggsave(paste0(path_save,"emprego_privado_sexo.png"), height = 5, width = 9)
 ######################################
 # Emprego privado- Por Idade
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_baixo_idade",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_med_idade",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_alto_idade",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -258,21 +258,21 @@ ggsave(paste0(path_save,"emprego_privado_idade.png"), height = 5, width = 9)
 ######################################
 # Emprego privado- Por Rank de Salário CBO
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_baixo_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_med_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_alto_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_altissimo_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 p1 = plot_es(m1, title = '1st wage quart.', lim_y = c(-0.15, 0.05))
@@ -287,13 +287,13 @@ ggsave(paste0(path_save,"emprego_privado_rank_sal_cbo.png"), height = 5, width =
 ######################################
 # Emprego privado- Por investimento em RD (OCDE)
 ######################################
-set.seed(123)
+set.seed(456)
 m1 = regressao_cs(variavel_dependente = "emprego_hintensity",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_lintensity",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -309,15 +309,15 @@ ggsave(paste0(path_save,"emprego_inv_pesquisa.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "emprego_lcol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_mcol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_hcol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -333,7 +333,7 @@ ggsave(paste0(path_save,"emprego_share_col.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "emprego_meio_periodo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 p1 = plot_es(m1, title = " ", lim_y = c(-0.2, 0.3))
@@ -347,7 +347,7 @@ ggsave(paste0(path_save,"empregos_alternativos.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "salario_privado",
-                  dep_em_log = 1,
+                  dep_relativo_2014 = 1,
                   controles_use = controles, 
                   control_group = "notyettreated")
 
@@ -361,16 +361,16 @@ ggsave(paste0(path_save,"wages.png"), height = 4.5, width = 8)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "salario_lths",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 m2 = regressao_cs(variavel_dependente = "salario_hs_somecol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "salario_col",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   # base_period = 'universal',
                   control_group = "notyettreated")
 
@@ -388,19 +388,19 @@ ggsave(paste0(path_save,"wages_educ.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "salario_baixo_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "salario_med_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "salario_alto_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "salario_altissimo_cbo",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 p1 = plot_es(m1, title = '1st wage quart.', lim_y = c(-0.1, 0.05))
@@ -417,11 +417,11 @@ ggsave(paste0(path_save,"wages_rank_sal_cbo.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "admitido",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "demitido",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -436,19 +436,19 @@ ggsave(paste0(path_save,"adm_dem.png"), height = 5, width = 9)
 # ######################################
 # set.seed(123)
 # m1 = regressao_cs(variavel_dependente = "admitido_baixo_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m2 = regressao_cs(variavel_dependente = "admitido_med_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m3 = regressao_cs(variavel_dependente = "admitido_alto_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m4 = regressao_cs(variavel_dependente = "admitido_altissimo_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # p1 = plot_es(m1, title = 'Log Hires: (,1500]'), lim_y = c(-0.45, 0.25)
@@ -464,19 +464,19 @@ ggsave(paste0(path_save,"adm_dem.png"), height = 5, width = 9)
 # ######################################
 # set.seed(123)
 # m1 = regressao_cs(variavel_dependente = "demitido_baixo_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m2 = regressao_cs(variavel_dependente = "demitido_med_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m3 = regressao_cs(variavel_dependente = "demitido_alto_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m4 = regressao_cs(variavel_dependente = "demitido_altissimo_sal",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # p1 = plot_es(m1, title = 'Log Layoffs: (,1500]'), lim_y = c(-0.5, 0.3)
@@ -493,11 +493,11 @@ ggsave(paste0(path_save,"adm_dem.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "admissao_total",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "demissao_total",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -512,19 +512,19 @@ ggsave(paste0(path_save,"adm_dem_caged.png"), height = 5, width = 9)
 # ######################################
 # set.seed(123)
 # m1 = regressao_cs(variavel_dependente = "admissao_baixo",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m2 = regressao_cs(variavel_dependente = "admissao_med",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m3 = regressao_cs(variavel_dependente = "admissao_alto",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m4 = regressao_cs(variavel_dependente = "admissao_altissimo",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # p1 = plot_es(m1, title = '(,2000]', lim_y = c(-0.45, 0.25))
@@ -540,19 +540,19 @@ ggsave(paste0(path_save,"adm_dem_caged.png"), height = 5, width = 9)
 # ######################################
 # set.seed(123)
 # m1 = regressao_cs(variavel_dependente = "demissao_baixo",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m2 = regressao_cs(variavel_dependente = "demissao_med",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m3 = regressao_cs(variavel_dependente = "demissao_alto",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # m4 = regressao_cs(variavel_dependente = "demissao_altissimo",
-#                   dep_em_log= 1, controles_use = controles, 
+#                   dep_relativo_2014= 1, controles_use = controles, 
 #                   control_group = "notyettreated")
 # 
 # p1 = plot_es(m1, title = 'Log Layoffs: (,2000]', lim_y = c(-0.5, 0.3))#
@@ -570,11 +570,11 @@ ggsave(paste0(path_save,"adm_dem_caged.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "emprego_publico",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "salario_publico",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -590,7 +590,7 @@ ggsave(paste0(path_save,"emprego_salario_publico.png"), height = 5, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "n_veics",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated")
 
 
@@ -605,17 +605,17 @@ ggsave(paste0(path_save,"frota_veics.png"), height = 5, width = 9)
 # Emprego privado- Por Educação - BASE UNIVERSAL
 ######################################
 m1 = regressao_cs(variavel_dependente = "emprego_lths",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
 m2 = regressao_cs(variavel_dependente = "emprego_hs_somecol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
 m3 = regressao_cs(variavel_dependente = "emprego_col",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
@@ -631,22 +631,22 @@ ggsave(paste0(path_save,"emprego_privado_escolaridade_universal.png"), height = 
 # Log Salarios - Educ - base universal
 ######################################
 m1 = regressao_cs(variavel_dependente = "salario_lths",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 m2 = regressao_cs(variavel_dependente = "salario_hs_somecol",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 m3 = regressao_cs(variavel_dependente = "salario_col",
-                  dep_em_log= 1, controles_use = controles, 
+                  dep_relativo_2014= 1, controles_use = controles, 
                   control_group = "notyettreated",
                   base_period = "universal")
 
 
-p1 = plot_es(m1, title = "Less Than HS", lim_y = c(-0.08, 0.04))
-p2 = plot_es(m2, title = 'HS/ Some Coll.', lim_y = c(-0.08, 0.04))
-p3 = plot_es(m3, title = 'College', lim_y = c(-0.08, 0.04))
+p1 = plot_es(m1, title = "Less Than HS", lim_y = c(-0.1, 0.05))
+p2 = plot_es(m2, title = 'HS/ Some Coll.', lim_y = c(-0.1, 0.05))
+p3 = plot_es(m3, title = 'College', lim_y = c(-0.1, 0.05))
 plot_grid(p1,p2, p3, nrow = 1)
 
 ggsave(paste0(path_save,"wages_educ_universal.png"), height = 9, width = 9)
@@ -660,22 +660,22 @@ ggsave(paste0(path_save,"wages_educ_universal.png"), height = 9, width = 9)
 ######################################
 set.seed(123)
 m1 = regressao_cs(variavel_dependente = "emprego_baixo_sal",
-                  dep_em_log= 1, controles_use = controles,  
+                  dep_relativo_2014= 1, controles_use = controles,  
                   base_period = 'universal', 
                   control_group = "notyettreated")
 
 m2 = regressao_cs(variavel_dependente = "emprego_med_sal",
-                  dep_em_log= 1, controles_use = controles,  
+                  dep_relativo_2014= 1, controles_use = controles,  
                   base_period = 'universal', 
                   control_group = "notyettreated")
 
 m3 = regressao_cs(variavel_dependente = "emprego_alto_sal",
-                  dep_em_log= 1, controles_use = controles,  
+                  dep_relativo_2014= 1, controles_use = controles,  
                   base_period = 'universal', 
                   control_group = "notyettreated")
 
 m4 = regressao_cs(variavel_dependente = "emprego_altissimo_sal",
-                  dep_em_log= 1, controles_use = controles,  
+                  dep_relativo_2014= 1, controles_use = controles,  
                   base_period = 'universal', 
                   control_group = "notyettreated")
 
@@ -696,7 +696,7 @@ ggsave(paste0(path_save,"emprego_privado_nivel_sal_universal.png"), height = 5, 
 #                   control_group = "notyettreated")
 # 
 # m2 = regressao_cs(variavel_dependente = "mortes_acidente_carro_pc",
-#                   controles_use = controles, dep_em_log =1,
+#                   controles_use = controles, dep_relativo_2014 =1,
 #                   control_group = "notyettreated")
 # p1 = plot_es(m1, title = 'Homicidios/100k Hab')
 # p2 = plot_es(m2, title = "Mortes Acidente de Carros/ 100k Hab")
@@ -715,10 +715,10 @@ set.seed(123)
 
 df[, emprego_teste := emprego_6 - emprego_10]
 
-m1 = regressao_cs(variavel_dependente = "emprego_6",
+m1 = regressao_cs(variavel_dependente = "emprego_4",
                   dep_relativo_2014= 1,
-                  # dep_em_log = 1,
-                  base_period = 'universal',
+                  # dep_relativo_2014 = 1,
+                  # base_period = 'universal',
                   controles_use = controles, 
                   control_group = "notyettreated")
 plot_es(m1, title = 'Teste') %>% print()
@@ -774,7 +774,7 @@ count(entry, tenho_datas)
 ######################################
 #Tentativa com Leave-One-Out
 ######################################
-set.seed(123)
+source("../uber/ub_funcoes_auxiliares.R")
 grupos = df %>% 
   filter(!is.na(semestre_entrada)) %>% 
   arrange(semestre_entrada) %>% 
@@ -786,19 +786,19 @@ tabela_resultados = data.table()
 for(grupo in grupos){
   df = df_back[!semestre_entrada %in% grupo]
   m1 = regressao_cs(variavel_dependente = "emprego_privado",
-                    dep_em_log= 1, controles_use = controles, 
+                    dep_relativo_2014= 1, controles_use = controles, 
                     control_group = "notyettreated")
   
   m2 = regressao_cs(variavel_dependente = "emprego_lths",
-                    dep_em_log= 1, controles_use = controles,
+                    dep_relativo_2014= 1, controles_use = controles,
                     control_group = "notyettreated")
-
+  
   m3 = regressao_cs(variavel_dependente = "emprego_med_sal",
-                    dep_em_log= 1, controles_use = controles,
+                    dep_relativo_2014= 1, controles_use = controles,
                     control_group = "notyettreated")
   
   m4 = regressao_cs(variavel_dependente = "emprego_homens",
-                    dep_em_log= 1, controles_use = controles,
+                    dep_relativo_2014= 1, controles_use = controles,
                     control_group = "notyettreated")
   semestre = as.character(grupo)
   #pegar dados do primeiro modelo
@@ -810,7 +810,7 @@ for(grupo in grupos){
   att2 = m2[[2]]$overall.att
   inf2 = (-1.96*m2[[2]]$overall.se)+att2
   sup2 = (1.96*m2[[2]]$overall.se)+att2
-
+  
   #pegar dados do terceiro modelo
   att3 = m3[[2]]$overall.att
   inf3 = (-1.96*m3[[2]]$overall.se)+att3
@@ -889,3 +889,9 @@ pop_10 = sum(df[anosem == 20142, .(pop_r)])
 pop_14 = sum(df[anosem == 20142, .(pop_14)])
 pea_14 = (pop_14/pop_10) * pea_10
 share_empregado = emprego_142/pea_14
+
+teste = df[anosem == 20162, 
+           .(rgi, anosem, emprego_privado, emprego_lths,
+             emprego_hs_somecol, emprego_col,
+             emprego_lths_baixo, emprego_lths_med, emprego_lths_alto,
+             emprego_lths_altissimo)]
